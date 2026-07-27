@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = "https://roomrent-production.up.railway.app/api";
 
 export default function App() {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'details', 'add_tenant'
