@@ -22,6 +22,28 @@ export default function App() {
   // Loading & Toast State
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    id: null,
+    roomNumber: '',
+    houseName: 'Old House',
+    floor: '',
+    description: '',
+    occupied: false,
+    tenantName: '',
+    mobileNumber: '',
+    aadhaarNumber: '',
+    joiningDate: '',
+    monthlyRent: '0',
+    securityDeposit: '0',
+    notes: '',
+    previousMeterReading: '0',
+    currentMeterReading: '0',
+    rentStatus: 'PAID',
+    electricityStatus: 'PAID'
+  });
   
   // Form State for Add Tenant
   const [tenantForm, setTenantForm] = useState({
@@ -292,6 +314,99 @@ export default function App() {
     }
   };
 
+  // Open Edit Modal
+  const handleOpenEditModal = (room) => {
+    let formattedDate = '';
+    if (room.joiningDate) {
+      if (Array.isArray(room.joiningDate)) {
+        const [y, m, d] = room.joiningDate;
+        formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      } else if (typeof room.joiningDate === 'string') {
+        formattedDate = room.joiningDate.split('T')[0];
+      }
+    }
+
+    setEditForm({
+      id: room.id,
+      roomNumber: room.roomNumber || '',
+      houseName: room.houseName || 'Old House',
+      floor: room.floor || '',
+      description: room.description || '',
+      occupied: room.occupied || false,
+      tenantName: room.tenantName || '',
+      mobileNumber: room.mobileNumber || '',
+      aadhaarNumber: room.aadhaarNumber || '',
+      joiningDate: formattedDate,
+      monthlyRent: room.monthlyRent || '0',
+      securityDeposit: room.securityDeposit || '0',
+      notes: room.notes || '',
+      previousMeterReading: room.previousMeterReading || '0',
+      currentMeterReading: room.currentMeterReading || '0',
+      rentStatus: room.rentStatus || 'PAID',
+      electricityStatus: room.electricityStatus || 'PAID'
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Submit Edit Form
+  const handleEditRoomSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.roomNumber || editForm.roomNumber.trim() === '') {
+      showToast('⚠️ Please enter Room Number');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${editForm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editForm,
+          monthlyRent: parseFloat(editForm.monthlyRent) || 0.0,
+          securityDeposit: parseFloat(editForm.securityDeposit) || 0.0,
+          previousMeterReading: parseFloat(editForm.previousMeterReading) || 0.0,
+          currentMeterReading: parseFloat(editForm.currentMeterReading) || 0.0,
+          occupied: editForm.occupied
+        })
+      });
+      if (res.ok) {
+        showToast('✅ Room updated successfully!');
+        setIsEditModalOpen(false);
+        fetchRoomDetails(editForm.id); // Reload room data
+      } else {
+        const errorText = await res.text();
+        showToast(`❌ Update failed: ${errorText || 'Server error'}`);
+      }
+    } catch (err) {
+      showToast('⚠️ Connection error during edit');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Room completely
+  const handleDeleteRoom = async () => {
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to delete Room "${selectedRoom.roomNumber}" completely? This will permanently delete all metadata and monthly billing history logs for this room. This action cannot be undone.`)) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${selectedRoom.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        showToast('🗑️ Room deleted successfully');
+        handleBackToDashboard(); // Return to main page
+      } else {
+        showToast('❌ Failed to delete room');
+      }
+    } catch (err) {
+      showToast('⚠️ Connection error during delete');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Dynamic A4 PDF Builder using jsPDF
   const buildInvoicePDF = (roomObj, monthLabel, prevReading, currReading, unitsVal, elecBill, rentVal, totalVal, isPaid) => {
     const doc = new jsPDF('p', 'mm', 'a4'); // A4 size: 210 x 297mm
@@ -450,26 +565,35 @@ export default function App() {
       showToast("🖨️ Bill print file parsed!");
     } else if (actionType === 'share') {
       try {
-        const blob = doc.output('blob');
-        const file = new File([blob], `Bill_${selectedRoom.roomNumber}.pdf`, { type: 'application/pdf' });
-        
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({
-            files: [file],
-            title: `Room Bill - ${selectedRoom.roomNumber}`,
-            text: `Electricity & Rent bill statement for ${selectedRoom.roomNumber} - ${month}`
-          })
-          .then(() => showToast("📱 Sharing completed!"))
-          .catch((err) => {
-            console.warn(err);
-            showToast("⚠️ Sharing cancelled or failed.");
-          });
-        } else {
-          showToast("📱 Mobile Share not supported. Downloading instead...");
-          doc.save(`Bill_${selectedRoom.houseName}_Room_${selectedRoom.roomNumber}_${month}.pdf`);
+        // Download the PDF first so the user has it ready
+        doc.save(`Bill_${selectedRoom.houseName}_Room_${selectedRoom.roomNumber}_${month}.pdf`);
+
+        // Format WhatsApp Message
+        let mobile = selectedRoom.mobileNumber ? selectedRoom.mobileNumber.replace(/\D/g, '') : '';
+        if (mobile.length === 10) {
+          mobile = '91' + mobile;
         }
+
+        let whatsappMsg = `*KASTURI RENTAL ROOMS - INVOICE*\n\n`;
+        whatsappMsg += `*Tenant Name:* ${selectedRoom.tenantName || 'N/A'}\n`;
+        whatsappMsg += `*House Sector:* ${selectedRoom.houseName || 'N/A'}\n`;
+        whatsappMsg += `*Room Number:* ${selectedRoom.roomNumber}\n`;
+        whatsappMsg += `*Billing Month:* ${month}\n\n`;
+        whatsappMsg += `*Rent Amount:* ₹${selectedRoom.monthlyRent || 0} (${selectedRoom.rentStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
+        if (selectedRoom.electricityBill > 0) {
+          whatsappMsg += `*Electricity Bill:* ₹${selectedRoom.electricityBill || 0} (${selectedRoom.electricityStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
+          whatsappMsg += `*Meter Readings:* Prev ${selectedRoom.previousMeterReading} | Curr ${selectedRoom.currentMeterReading} (${selectedRoom.unitsUsed} units)\n`;
+        }
+        whatsappMsg += `\n*Total Due Outstanding:* *₹${total}*\n\n`;
+        whatsappMsg += `Please clear your dues as soon as possible. Thank you!`;
+
+        const encodedText = encodeURIComponent(whatsappMsg);
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${mobile}&text=${encodedText}`;
+        
+        window.open(whatsappUrl, '_blank');
+        showToast("📱 Redirecting to WhatsApp...");
       } catch (err) {
-        showToast("⚠️ Error while sharing PDF.");
+        showToast("⚠️ Error while formatting WhatsApp share.");
       }
     }
   };
@@ -975,6 +1099,26 @@ export default function App() {
                 </button>
               </>
             )}
+
+            {/* Room Utility Actions (Always visible at the bottom of details) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '24px', borderTop: '1.5px solid var(--slate-200)', paddingTop: '20px' }}>
+              <button 
+                type="button"
+                className="btn-large btn-primary" 
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={() => handleOpenEditModal(selectedRoom)}
+              >
+                ✏️ Edit Details
+              </button>
+              <button 
+                type="button"
+                className="btn-large btn-danger" 
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+                onClick={handleDeleteRoom}
+              >
+                🗑️ Delete Room
+              </button>
+            </div>
           </div>
         )}
 
@@ -1144,6 +1288,264 @@ export default function App() {
         <div className="toast">
           <span>ℹ️</span>
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Edit Room Modal */}
+      {isEditModalOpen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '520px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid rgba(226, 232, 240, 0.8)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--slate-250)', paddingBottom: '12px' }}>
+              <span style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary-dark)' }}>✏️ Edit Room Details</span>
+              <button 
+                type="button" 
+                onClick={() => setIsEditModalOpen(false)} 
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-light)' }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditRoomSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Sector & Number Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">House Sector</label>
+                  <select
+                    className="form-input"
+                    value={editForm.houseName}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, houseName: e.target.value }))}
+                  >
+                    <option value="Old House">Old House</option>
+                    <option value="New House">New House</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Room Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editForm.roomNumber}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Floor & Description Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Floor</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editForm.floor}
+                    placeholder="e.g. Ground Floor"
+                    onChange={(e) => setEditForm(prev => ({ ...prev, floor: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description / Note</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editForm.description}
+                    placeholder="e.g. Piche Wala Room"
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Occupied Switch Checkbox */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--slate-50)', padding: '12px', borderRadius: '12px' }}>
+                <input
+                  type="checkbox"
+                  id="editOccupied"
+                  checked={editForm.occupied}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, occupied: e.target.checked }))}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <label htmlFor="editOccupied" style={{ fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer', color: 'var(--primary-dark)' }}>
+                  Room is Occupied by Tenant
+                </label>
+              </div>
+
+              {editForm.occupied && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderLeft: '3px solid var(--primary)', paddingLeft: '12px' }}>
+                  
+                  {/* Tenant Name */}
+                  <div className="form-group">
+                    <label className="form-label">Tenant Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editForm.tenantName}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, tenantName: e.target.value }))}
+                      required={editForm.occupied}
+                    />
+                  </div>
+
+                  {/* Phone & Aadhaar */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Mobile Number</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={editForm.mobileNumber}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, mobileNumber: e.target.value }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Aadhaar Number</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={editForm.aadhaarNumber}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, aadhaarNumber: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Rent & Deposit */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Monthly Rent Amount (₹)</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={editForm.monthlyRent}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, monthlyRent: e.target.value }))}
+                        required={editForm.occupied}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Security Deposit (₹)</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={editForm.securityDeposit}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, securityDeposit: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Joining Date */}
+                  <div className="form-group">
+                    <label className="form-label">Joining Date</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={editForm.joiningDate}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, joiningDate: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Meter Readings */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Prev Meter Reading</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={editForm.previousMeterReading}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, previousMeterReading: e.target.value }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Current Meter Reading</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={editForm.currentMeterReading}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, currentMeterReading: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Status Dropdowns */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Rent Status</label>
+                      <select
+                        className="form-input"
+                        value={editForm.rentStatus}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, rentStatus: e.target.value }))}
+                      >
+                        <option value="PAID">PAID</option>
+                        <option value="DUE">DUE</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Electricity Status</label>
+                      <select
+                        className="form-input"
+                        value={editForm.electricityStatus}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, electricityStatus: e.target.value }))}
+                      >
+                        <option value="PAID">PAID</option>
+                        <option value="DUE">DUE</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="form-group">
+                    <label className="form-label">Notes</label>
+                    <textarea
+                      className="form-input"
+                      rows="2"
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                    ></textarea>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-large btn-secondary"
+                  onClick={() => setIsEditModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-large btn-primary"
+                >
+                  💾 Save Changes
+                </button>
+              </div>
+              
+            </form>
+          </div>
         </div>
       )}
     </div>

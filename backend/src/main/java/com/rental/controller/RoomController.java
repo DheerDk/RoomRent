@@ -382,4 +382,83 @@ public class RoomController {
 
         roomHistoryRepository.save(history);
     }
+
+    // 10. Update room details
+    @PutMapping("/rooms/{id}")
+    public ResponseEntity<?> updateRoom(@PathVariable Long id, @RequestBody Room updatedRoom) {
+        Optional<Room> optionalRoom = roomRepository.findById(id);
+        if (optionalRoom.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Room room = optionalRoom.get();
+        
+        // Normalize room number format to match seeded values (e.g., "room 4" -> "Room 4")
+        String roomNumber = updatedRoom.getRoomNumber();
+        if (roomNumber != null) {
+            roomNumber = roomNumber.trim();
+            if (roomNumber.equalsIgnoreCase("shop")) {
+                roomNumber = "Shop";
+            } else if (roomNumber.toLowerCase().startsWith("room")) {
+                String suffix = roomNumber.substring(4).trim();
+                roomNumber = "Room " + suffix;
+            } else if (!roomNumber.isEmpty()) {
+                roomNumber = Character.toUpperCase(roomNumber.charAt(0)) + roomNumber.substring(1);
+            }
+            room.setRoomNumber(roomNumber);
+        }
+
+        if (updatedRoom.getHouseName() != null) {
+            room.setHouseName(updatedRoom.getHouseName());
+            if ("New House".equalsIgnoreCase(updatedRoom.getHouseName())) {
+                room.setAddress("A15 Haripuram Colony New Suresh nagar");
+            } else {
+                room.setAddress("65 Siddharth nagar thatipur");
+            }
+        }
+
+        room.setFloor(updatedRoom.getFloor());
+        room.setDescription(updatedRoom.getDescription());
+        room.setOccupied(updatedRoom.isOccupied());
+        room.setTenantName(updatedRoom.getTenantName());
+        room.setMobileNumber(updatedRoom.getMobileNumber());
+        room.setAadhaarNumber(updatedRoom.getAadhaarNumber());
+        room.setJoiningDate(updatedRoom.getJoiningDate());
+        room.setMonthlyRent(updatedRoom.getMonthlyRent());
+        room.setSecurityDeposit(updatedRoom.getSecurityDeposit());
+        room.setNotes(updatedRoom.getNotes());
+        
+        room.setPreviousMeterReading(updatedRoom.getPreviousMeterReading());
+        room.setCurrentMeterReading(updatedRoom.getCurrentMeterReading());
+        room.setUnitsUsed(updatedRoom.getUnitsUsed());
+        room.setElectricityBill(updatedRoom.getElectricityBill());
+        
+        room.setRentStatus(updatedRoom.getRentStatus() != null ? updatedRoom.getRentStatus() : "PAID");
+        room.setElectricityStatus(updatedRoom.getElectricityStatus() != null ? updatedRoom.getElectricityStatus() : "PAID");
+
+        Room savedRoom = roomRepository.save(room);
+        
+        // If room is occupied, synchronize history for the current month.
+        if (savedRoom.isOccupied()) {
+            updateOrAddHistory(savedRoom, getCurrentMonthString(), "PAID".equalsIgnoreCase(savedRoom.getRentStatus()), "PAID".equalsIgnoreCase(savedRoom.getElectricityStatus()));
+        }
+
+        return ResponseEntity.ok(savedRoom);
+    }
+
+    // 11. Delete room completely
+    @DeleteMapping("/rooms/{id}")
+    public ResponseEntity<?> deleteRoom(@PathVariable Long id) {
+        Optional<Room> optionalRoom = roomRepository.findById(id);
+        if (optionalRoom.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Delete associated history first
+        roomHistoryRepository.deleteAll(roomHistoryRepository.findByRoomIdOrderByIdDesc(id));
+        
+        // Delete room
+        roomRepository.delete(optionalRoom.get());
+        return ResponseEntity.ok().build();
+    }
 }
+
