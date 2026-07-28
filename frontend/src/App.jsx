@@ -413,7 +413,7 @@ export default function App() {
   };
 
   // Dynamic A4 PDF Builder using jsPDF
-  const buildInvoicePDF = (roomObj, monthLabel, prevReading, currReading, unitsVal, elecBill, rentVal, totalVal, isPaid) => {
+  const buildInvoicePDF = (roomObj, monthLabel, prevReading, currReading, unitsVal, elecBill, rentVal, totalVal, isRentPaid, isElecPaid) => {
     const doc = new jsPDF('p', 'mm', 'a4'); // A4 size: 210 x 297mm
     
     // styles
@@ -581,7 +581,11 @@ export default function App() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text("Total Electricity Power Dues", 14, 114.5);
-    doc.setTextColor(16, 124, 65); // Green color (#107c41)
+    if (isElecPaid) {
+      doc.setTextColor(16, 124, 65); // Green color (#107c41) indicating undue amount
+    } else {
+      doc.setTextColor(220, 38, 38); // Red color for active due amount
+    }
     doc.text(`Rs. ${elecBill}`, 196, 114.5, { align: "right" });
 
     // SECTION 2: MONTHLY RENT CHARGES
@@ -624,7 +628,11 @@ export default function App() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text("Total Room Rent Dues", 14, 143);
-    doc.setTextColor(220, 38, 38);
+    if (isRentPaid) {
+      doc.setTextColor(16, 124, 65); // Green color (#107c41) indicating undue amount
+    } else {
+      doc.setTextColor(220, 38, 38); // Red color for active due amount
+    }
     doc.text(`Rs. ${rentVal}`, 196, 143, { align: "right" });
 
     // SECTION 3: GRAND TOTAL & PAYMENT SUMMARY
@@ -657,14 +665,30 @@ export default function App() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(darkText);
     doc.setFontSize(8.5);
-    doc.text("Electricity Power Dues", 12, 178);
-    doc.text(`Rs. ${elecBill}`, 196, 178, { align: "right" });
-    doc.setDrawColor(241, 245, 249);
-    doc.line(10, 180, 200, 180);
+    
+    let currentY = 178;
 
-    doc.text("Monthly House Rent Dues", 12, 184);
-    doc.text(`Rs. ${rentVal}`, 196, 184, { align: "right" });
-    doc.line(10, 186, 200, 186);
+    if (!isElecPaid) {
+      doc.text("Electricity Power Dues", 12, currentY);
+      doc.text(`Rs. ${elecBill}`, 196, currentY, { align: "right" });
+      doc.setDrawColor(241, 245, 249);
+      doc.line(10, currentY + 2, 200, currentY + 2);
+      currentY += 6;
+    }
+
+    if (!isRentPaid) {
+      doc.text("Monthly House Rent Dues", 12, currentY);
+      doc.text(`Rs. ${rentVal}`, 196, currentY, { align: "right" });
+      doc.setDrawColor(241, 245, 249);
+      doc.line(10, currentY + 2, 200, currentY + 2);
+      currentY += 6;
+    }
+
+    if (isElecPaid && isRentPaid) {
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(16, 124, 65);
+      doc.text("No outstanding dues for this billing cycle.", 12, currentY);
+    }
 
     // Green Highlight Box
     doc.setFillColor(230, 244, 234);
@@ -757,7 +781,7 @@ export default function App() {
   };
 
   // PDF Trigger events
-  const handleTriggerPDF = (actionType) => {
+  const handleTriggerPDF = async (actionType) => {
     if (!selectedRoom) return;
 
     const month = selectedRoomHistoryMonth() || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -767,9 +791,10 @@ export default function App() {
     const bill = selectedRoom.electricityBill;
     const rent = selectedRoom.monthlyRent;
     const total = (selectedRoom.rentStatus !== 'PAID' ? rent : 0) + (selectedRoom.electricityStatus !== 'PAID' ? bill : 0);
-    const paid = selectedRoom.rentStatus === 'PAID' && selectedRoom.electricityStatus === 'PAID';
+    const isRentPaid = selectedRoom.rentStatus === 'PAID';
+    const isElecPaid = selectedRoom.electricityStatus === 'PAID';
 
-    const doc = buildInvoicePDF(selectedRoom, month, prev, curr, units, bill, rent, total, paid);
+    const doc = buildInvoicePDF(selectedRoom, month, prev, curr, units, bill, rent, total, isRentPaid, isElecPaid);
     
     if (actionType === 'download') {
       doc.save(`Bill_${selectedRoom.houseName}_Room_${selectedRoom.roomNumber}_${month}.pdf`);
@@ -780,35 +805,42 @@ export default function App() {
       showToast("🖨️ Bill print file parsed!");
     } else if (actionType === 'share') {
       try {
-        // Download the PDF first so the user has it ready
-        doc.save(`Bill_${selectedRoom.houseName}_Room_${selectedRoom.roomNumber}_${month}.pdf`);
+        const blob = doc.output('blob');
+        const filename = `Bill_${selectedRoom.houseName}_Room_${selectedRoom.roomNumber}_${month}.pdf`;
+        const file = new File([blob], filename, { type: 'application/pdf' });
 
-        // Format WhatsApp Message
-        let mobile = selectedRoom.mobileNumber ? selectedRoom.mobileNumber.replace(/\D/g, '') : '';
-        if (mobile.length === 10) {
-          mobile = '91' + mobile;
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Rent Bill Room ${selectedRoom.roomNumber}`,
+            text: `Invoice for House Sector ${selectedRoom.houseName}, Room ${selectedRoom.roomNumber} - ${month}`
+          });
+          showToast("📢 Shared Rent Bill PDF successfully!");
+        } else {
+          // Fallback to local download and WhatsApp message text if sharing files is not supported
+          doc.save(filename);
+          let mobile = selectedRoom.mobileNumber ? selectedRoom.mobileNumber.replace(/\D/g, '') : '';
+          if (mobile.length === 10) {
+            mobile = '91' + mobile;
+          }
+          let whatsappMsg = `*KASTURI RENTAL ROOMS - INVOICE*\n\n`;
+          whatsappMsg += `*Tenant Name:* ${selectedRoom.tenantName || 'N/A'}\n`;
+          whatsappMsg += `*House Sector:* ${selectedRoom.houseName || 'N/A'}\n`;
+          whatsappMsg += `*Room Number:* ${selectedRoom.roomNumber}\n`;
+          whatsappMsg += `*Billing Month:* ${month}\n\n`;
+          whatsappMsg += `*Rent Amount:* Rs. ${rent} (${selectedRoom.rentStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
+          if (bill > 0) {
+            whatsappMsg += `*Electricity Bill:* Rs. ${bill} (${selectedRoom.electricityStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
+          }
+          whatsappMsg += `\n*Total Due Outstanding:* *Rs. ${total}*\n\n`;
+          whatsappMsg += `Please clear your dues as soon as possible. Thank you!`;
+          const whatsappUrl = `https://api.whatsapp.com/send?phone=${mobile}&text=${encodeURIComponent(whatsappMsg)}`;
+          window.open(whatsappUrl, '_blank');
+          showToast("📱 Redirecting to WhatsApp...");
         }
-
-        let whatsappMsg = `*KASTURI RENTAL ROOMS - INVOICE*\n\n`;
-        whatsappMsg += `*Tenant Name:* ${selectedRoom.tenantName || 'N/A'}\n`;
-        whatsappMsg += `*House Sector:* ${selectedRoom.houseName || 'N/A'}\n`;
-        whatsappMsg += `*Room Number:* ${selectedRoom.roomNumber}\n`;
-        whatsappMsg += `*Billing Month:* ${month}\n\n`;
-        whatsappMsg += `*Rent Amount:* Rs. ${selectedRoom.monthlyRent || 0} (${selectedRoom.rentStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
-        if (selectedRoom.electricityBill > 0) {
-          whatsappMsg += `*Electricity Bill:* Rs. ${selectedRoom.electricityBill || 0} (${selectedRoom.electricityStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
-          whatsappMsg += `*Meter Readings:* Prev ${selectedRoom.previousMeterReading} | Curr ${selectedRoom.currentMeterReading} (${selectedRoom.unitsUsed} units)\n`;
-        }
-        whatsappMsg += `\n*Total Due Outstanding:* *Rs. ${total}*\n\n`;
-        whatsappMsg += `Please clear your dues as soon as possible. Thank you!`;
-
-        const encodedText = encodeURIComponent(whatsappMsg);
-        const whatsappUrl = `https://api.whatsapp.com/send?phone=${mobile}&text=${encodedText}`;
-        
-        window.open(whatsappUrl, '_blank');
-        showToast("📱 Redirecting to WhatsApp...");
       } catch (err) {
-        showToast("⚠️ Error while formatting WhatsApp share.");
+        console.error("WhatsApp Link Share Failure: ", err);
+        showToast("⚠️ WhatsApp share not succeeded.");
       }
     }
   };
@@ -817,7 +849,8 @@ export default function App() {
   const handleHistoryPDF = (hist) => {
     if (!selectedRoom) return;
 
-    const paid = hist.status === 'Paid';
+    const isRentPaid = hist.rentPaid;
+    const isElecPaid = hist.electricityPaid;
     const doc = buildInvoicePDF(
       selectedRoom,
       hist.month,
@@ -827,7 +860,8 @@ export default function App() {
       hist.electricityBill,
       hist.rent,
       hist.total,
-      paid
+      isRentPaid,
+      isElecPaid
     );
     
     doc.save(`Bill_History_${selectedRoom.roomNumber}_${hist.month}.pdf`);
@@ -1244,7 +1278,7 @@ export default function App() {
                         style={{ padding: '12px', fontSize: '14px' }}
                         onClick={() => handleTriggerPDF('share')}
                       >
-                        📱 Share PDF
+                        Share on WhatsApp
                       </button>
                     </div>
                   </div>
