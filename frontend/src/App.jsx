@@ -661,17 +661,6 @@ export default function App() {
               <div className="room-list-container">
                 {rooms.filter(r => r.houseName === 'Old House' && r.floor === 'First Floor').map(room => renderRoomCard(room))}
               </div>
-
-              {rooms.some(r => r.houseName === 'Old House' && r.floor !== 'Ground Floor' && r.floor !== 'First Floor') && (
-                <>
-                  <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary)', borderLeft: '3px solid var(--primary)', paddingLeft: '8px', marginTop: '8px' }}>
-                    🏢 Other / Unassigned
-                  </div>
-                  <div className="room-list-container">
-                    {rooms.filter(r => r.houseName === 'Old House' && r.floor !== 'Ground Floor' && r.floor !== 'First Floor').map(room => renderRoomCard(room))}
-                  </div>
-                </>
-              )}
             </div>
 
             {/* New House Group block */}

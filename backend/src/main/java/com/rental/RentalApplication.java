@@ -1,11 +1,13 @@
 package com.rental;
 
 import com.rental.model.Room;
+import com.rental.repository.RoomHistoryRepository;
 import com.rental.repository.RoomRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import java.util.List;
 
 @SpringBootApplication
 public class RentalApplication {
@@ -15,8 +17,19 @@ public class RentalApplication {
     }
 
     @Bean
-    public CommandLineRunner initData(RoomRepository roomRepository) {
+    public CommandLineRunner initData(RoomRepository roomRepository, RoomHistoryRepository roomHistoryRepository) {
         return args -> {
+            // Delete room "room 4" (with lowercase 'r' or null floor) and its history to clean up
+            List<Room> invalidRooms = roomRepository.findAll().stream()
+                .filter(r -> r.getFloor() == null || r.getRoomNumber().equals("room 4"))
+                .toList();
+            
+            for (Room room : invalidRooms) {
+                roomHistoryRepository.deleteAll(roomHistoryRepository.findByRoomIdOrderByIdDesc(room.getId()));
+                roomRepository.delete(room);
+                System.out.println("Cleaned up invalid room: " + room.getRoomNumber() + " (ID: " + room.getId() + ")");
+            }
+
             if (roomRepository.count() == 0) {
                 // 1. Seed Old House Rooms
                 Room o1 = createRoom("Room 1", "Old House", "65 Siddharth nagar thatipur", "Ground Floor", "Aage Wala Room");
