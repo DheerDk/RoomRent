@@ -159,12 +159,23 @@ public class RoomController {
             inputHouse = "Old House"; // default fallback
         }
 
+        // Normalize room number format to match seeded values (e.g., "room 4" -> "Room 4")
+        String roomNumber = request.getRoomNumber().trim();
+        if (roomNumber.equalsIgnoreCase("shop")) {
+            roomNumber = "Shop";
+        } else if (roomNumber.toLowerCase().startsWith("room")) {
+            String suffix = roomNumber.substring(4).trim();
+            roomNumber = "Room " + suffix;
+        } else if (!roomNumber.isEmpty()) {
+            roomNumber = Character.toUpperCase(roomNumber.charAt(0)) + roomNumber.substring(1);
+        }
+
         // Find or create room by houseName and roomNumber
-        Room room = roomRepository.findByHouseNameAndRoomNumber(inputHouse.trim(), request.getRoomNumber().trim())
+        Room room = roomRepository.findByHouseNameAndRoomNumber(inputHouse.trim(), roomNumber)
                 .orElse(new Room());
         
         if (room.getId() == null) {
-            room.setRoomNumber(request.getRoomNumber().trim());
+            room.setRoomNumber(roomNumber);
             room.setHouseName(inputHouse.trim());
             // Set standard address
             if ("New House".equalsIgnoreCase(inputHouse)) {
