@@ -38,6 +38,8 @@ public class Room {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    private String membersCount;
+
     public Room() {}
 
     public Long getId() {
@@ -198,5 +200,13 @@ public class Room {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getMembersCount() {
+        return membersCount;
+    }
+
+    public void setMembersCount(String membersCount) {
+        this.membersCount = membersCount;
     }
 }

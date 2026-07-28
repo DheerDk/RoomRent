@@ -34,6 +34,8 @@ public class RoomHistory {
     private double previousReading = 0.0;
     private double currentReading = 0.0;
     private double unitsUsed = 0.0;
+    
+    private String membersCount;
 
     public RoomHistory() {}
 
@@ -147,5 +149,13 @@ public class RoomHistory {
 
     public void setUnitsUsed(double unitsUsed) {
         this.unitsUsed = unitsUsed;
+    }
+
+    public String getMembersCount() {
+        return membersCount;
+    }
+
+    public void setMembersCount(String membersCount) {
+        this.membersCount = membersCount;
     }
 }

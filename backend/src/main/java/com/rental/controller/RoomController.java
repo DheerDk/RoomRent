@@ -80,8 +80,17 @@ public class RoomController {
         private double monthlyRent;
         private LocalDate joiningDate;
         private double previousMeterReading;
+        private String membersCount;
 
         public AddTenantRequest() {}
+
+        public String getMembersCount() {
+            return membersCount;
+        }
+
+        public void setMembersCount(String membersCount) {
+            this.membersCount = membersCount;
+        }
 
         public String getHouseName() {
             return houseName;
@@ -192,6 +201,7 @@ public class RoomController {
         room.setAadhaarNumber(request.getAadhaarNumber());
         room.setJoiningDate(request.getJoiningDate() != null ? request.getJoiningDate() : LocalDate.now());
         room.setMonthlyRent(request.getMonthlyRent());
+        room.setMembersCount(request.getMembersCount());
         
         // Reset/update electricity readings
         room.setPreviousMeterReading(request.getPreviousMeterReading());
@@ -316,6 +326,7 @@ public class RoomController {
         room.setMobileNumber(null);
         room.setAadhaarNumber(null);
         room.setJoiningDate(null);
+        room.setMembersCount(null);
         room.setPreviousMeterReading(0.0);
         room.setCurrentMeterReading(0.0);
         room.setUnitsUsed(0.0);
@@ -362,6 +373,7 @@ public class RoomController {
         history.setRent(room.getMonthlyRent());
         history.setElectricityBill(room.getElectricityBill());
         history.setTotal(history.getRent() + history.getElectricityBill());
+        history.setMembersCount(room.getMembersCount());
         
         // Update reading logs history values
         history.setPreviousReading(room.getPreviousMeterReading());
@@ -426,6 +438,7 @@ public class RoomController {
         room.setMonthlyRent(updatedRoom.getMonthlyRent());
         room.setSecurityDeposit(updatedRoom.getSecurityDeposit());
         room.setNotes(updatedRoom.getNotes());
+        room.setMembersCount(updatedRoom.getMembersCount());
         
         room.setPreviousMeterReading(updatedRoom.getPreviousMeterReading());
         room.setCurrentMeterReading(updatedRoom.getCurrentMeterReading());
