@@ -35,12 +35,6 @@ public class RoomHistory {
     private double currentReading = 0.0;
     private double unitsUsed = 0.0;
 
-    private double paidRentAmount = 0.0;
-    private double rentBalanceDues = 0.0;
-    private double paidElectricityAmount = 0.0;
-    private double electricityBalanceDues = 0.0;
-    private String paymentMethod;
-
     public RoomHistory() {}
 
     public Long getId() {
@@ -153,45 +147,5 @@ public class RoomHistory {
 
     public void setUnitsUsed(double unitsUsed) {
         this.unitsUsed = unitsUsed;
-    }
-
-    public double getPaidRentAmount() {
-        return paidRentAmount;
-    }
-
-    public void setPaidRentAmount(double paidRentAmount) {
-        this.paidRentAmount = paidRentAmount;
-    }
-
-    public double getRentBalanceDues() {
-        return rentBalanceDues;
-    }
-
-    public void setRentBalanceDues(double rentBalanceDues) {
-        this.rentBalanceDues = rentBalanceDues;
-    }
-
-    public double getPaidElectricityAmount() {
-        return paidElectricityAmount;
-    }
-
-    public void setPaidElectricityAmount(double paidElectricityAmount) {
-        this.paidElectricityAmount = paidElectricityAmount;
-    }
-
-    public double getElectricityBalanceDues() {
-        return electricityBalanceDues;
-    }
-
-    public void setElectricityBalanceDues(double electricityBalanceDues) {
-        this.electricityBalanceDues = electricityBalanceDues;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
     }
 }

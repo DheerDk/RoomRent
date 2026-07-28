@@ -38,18 +38,6 @@ public class Room {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    private double paidRentAmount = 0.0;
-    private double rentBalanceDues = 0.0;
-    private double paidElectricityAmount = 0.0;
-    private double electricityBalanceDues = 0.0;
-    private String paymentMethod = "Cash";
-
-    @Column(columnDefinition = "LONGTEXT")
-    private String aadhaarCardFile;
-
-    @Column(columnDefinition = "LONGTEXT")
-    private String rentAgreementFile;
-
     public Room() {}
 
     public Long getId() {
@@ -210,61 +198,5 @@ public class Room {
 
     public void setNotes(String notes) {
         this.notes = notes;
-    }
-
-    public double getPaidRentAmount() {
-        return paidRentAmount;
-    }
-
-    public void setPaidRentAmount(double paidRentAmount) {
-        this.paidRentAmount = paidRentAmount;
-    }
-
-    public double getRentBalanceDues() {
-        return rentBalanceDues;
-    }
-
-    public void setRentBalanceDues(double rentBalanceDues) {
-        this.rentBalanceDues = rentBalanceDues;
-    }
-
-    public double getPaidElectricityAmount() {
-        return paidElectricityAmount;
-    }
-
-    public void setPaidElectricityAmount(double paidElectricityAmount) {
-        this.paidElectricityAmount = paidElectricityAmount;
-    }
-
-    public double getElectricityBalanceDues() {
-        return electricityBalanceDues;
-    }
-
-    public void setElectricityBalanceDues(double electricityBalanceDues) {
-        this.electricityBalanceDues = electricityBalanceDues;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public String getAadhaarCardFile() {
-        return aadhaarCardFile;
-    }
-
-    public void setAadhaarCardFile(String aadhaarCardFile) {
-        this.aadhaarCardFile = aadhaarCardFile;
-    }
-
-    public String getRentAgreementFile() {
-        return rentAgreementFile;
-    }
-
-    public void setRentAgreementFile(String rentAgreementFile) {
-        this.rentAgreementFile = rentAgreementFile;
     }
 }

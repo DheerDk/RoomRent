@@ -23,11 +23,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Payment Recording States
-  const [paymentTarget, setPaymentTarget] = useState('rent');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
-
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -167,46 +162,37 @@ export default function App() {
     setCurrentView('details');
   };
 
-  // Get outstanding dues helper
-  const getRemainingDues = (target) => {
-    if (!selectedRoom) return 0;
-    if (target === 'rent') {
-      return Math.max(0, (selectedRoom.monthlyRent + selectedRoom.rentBalanceDues) - selectedRoom.paidRentAmount);
-    } else {
-      return Math.max(0, (selectedRoom.electricityBill + selectedRoom.electricityBalanceDues) - selectedRoom.paidElectricityAmount);
+  // Mark Rent Paid
+  const handleMarkRentPaid = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${selectedRoomId}/mark-rent-paid`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        showToast('✅ Monthly Rent Marked as Paid');
+        fetchRoomDetails(selectedRoomId);
+      } else {
+        showToast('❌ Failed to update rent status');
+      }
+    } catch (err) {
+      showToast('⚠️ Communication error');
     }
   };
 
-  // Submit payment record
-  const handleRecordPaymentSubmit = async () => {
-    const amt = parseFloat(paymentAmount);
-    if (isNaN(amt) || amt < 0) {
-      showToast('⚠️ Please enter a valid payment amount');
-      return;
-    }
-    
-    setLoading(true);
+  // Mark Elect Paid
+  const handleMarkElectricityPaid = async () => {
     try {
-      const endpoint = paymentTarget === 'rent' ? 'mark-rent-paid' : 'mark-electricity-paid';
-      const res = await fetch(`${API_BASE}/rooms/${selectedRoomId}/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amountPaid: amt,
-          paymentMethod: paymentMethod
-        })
+      const res = await fetch(`${API_BASE}/rooms/${selectedRoomId}/mark-electricity-paid`, {
+        method: 'POST'
       });
       if (res.ok) {
-        showToast('✅ Payment recorded successfully!');
-        setPaymentAmount('');
+        showToast('✅ Electricity Bill Marked as Paid');
         fetchRoomDetails(selectedRoomId);
       } else {
-        showToast('❌ Failed to record payment');
+        showToast('❌ Failed to update electricity status');
       }
     } catch (err) {
-      showToast('⚠️ Connection error while recording payment');
-    } finally {
-      setLoading(false);
+      showToast('⚠️ Communication error');
     }
   };
 
@@ -328,104 +314,6 @@ export default function App() {
     }
   };
 
-  // Handle converting documents to Base64
-  const handleFileChange = (e, field) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('⚠️ File size must be under 2MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditForm(prev => ({ ...prev, [field]: reader.result }));
-        showToast(`📎 Document uploaded successfully!`);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Export Room Rent registry to CSV format
-  const handleExportCSV = () => {
-    if (rooms.length === 0) {
-      showToast('⚠️ No room data available to export');
-      return;
-    }
-    
-    const headers = [
-      "Room Number",
-      "House Sector",
-      "Floor",
-      "Description",
-      "Occupation Status",
-      "Tenant Name",
-      "Mobile Number",
-      "Monthly Rent Amount",
-      "Paid Rent Amount",
-      "Rent Balance Dues",
-      "Rent Status",
-      "Previous Meter Reading",
-      "Current Meter Reading",
-      "Units Used",
-      "Electricity Bill Amount",
-      "Paid Electricity Amount",
-      "Electricity Balance Dues",
-      "Electricity Status",
-      "Total Outstanding Dues",
-      "Payment Method",
-      "Notes"
-    ];
-
-    const rows = rooms.map(room => {
-      const occupied = room.occupied ? "Occupied" : "Vacant";
-      const totalOutstanding = (room.occupied ? 
-        Math.max(0, (room.monthlyRent + room.rentBalanceDues - room.paidRentAmount)) + 
-        Math.max(0, (room.electricityBill + room.electricityBalanceDues - room.paidElectricityAmount)) : 0
-      );
-      
-      const cleanField = (val) => {
-        if (val === null || val === undefined) return '""';
-        return `"${String(val).replace(/"/g, '""').replace(/\n/g, ' ')}"`;
-      };
-      
-      return [
-        cleanField(room.roomNumber),
-        cleanField(room.houseName),
-        cleanField(room.floor),
-        cleanField(room.description),
-        `"${occupied}"`,
-        cleanField(room.tenantName),
-        cleanField(room.mobileNumber),
-        room.monthlyRent || 0,
-        room.paidRentAmount || 0,
-        room.rentBalanceDues || 0,
-        cleanField(room.rentStatus),
-        room.previousMeterReading || 0,
-        room.currentMeterReading || 0,
-        room.unitsUsed || 0,
-        room.electricityBill || 0,
-        room.paidElectricityAmount || 0,
-        room.electricityBalanceDues || 0,
-        cleanField(room.electricityStatus),
-        totalOutstanding,
-        cleanField(room.paymentMethod || 'Cash'),
-        cleanField(room.notes)
-      ];
-    });
-
-    const csvString = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `Rental_Register_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    showToast('✅ Register exported as CSV successfully!');
-  };
-
   // Open Edit Modal
   const handleOpenEditModal = (room) => {
     let formattedDate = '';
@@ -455,14 +343,7 @@ export default function App() {
       previousMeterReading: room.previousMeterReading || '0',
       currentMeterReading: room.currentMeterReading || '0',
       rentStatus: room.rentStatus || 'PAID',
-      electricityStatus: room.electricityStatus || 'PAID',
-      paidRentAmount: room.paidRentAmount || 0,
-      rentBalanceDues: room.rentBalanceDues || 0,
-      paidElectricityAmount: room.paidElectricityAmount || 0,
-      electricityBalanceDues: room.electricityBalanceDues || 0,
-      paymentMethod: room.paymentMethod || 'Cash',
-      aadhaarCardFile: room.aadhaarCardFile || '',
-      rentAgreementFile: room.rentAgreementFile || ''
+      electricityStatus: room.electricityStatus || 'PAID'
     });
     setIsEditModalOpen(true);
   };
@@ -485,10 +366,6 @@ export default function App() {
           securityDeposit: parseFloat(editForm.securityDeposit) || 0.0,
           previousMeterReading: parseFloat(editForm.previousMeterReading) || 0.0,
           currentMeterReading: parseFloat(editForm.currentMeterReading) || 0.0,
-          paidRentAmount: parseFloat(editForm.paidRentAmount) || 0.0,
-          rentBalanceDues: parseFloat(editForm.rentBalanceDues) || 0.0,
-          paidElectricityAmount: parseFloat(editForm.paidElectricityAmount) || 0.0,
-          electricityBalanceDues: parseFloat(editForm.electricityBalanceDues) || 0.0,
           occupied: editForm.occupied
         })
       });
@@ -693,9 +570,6 @@ export default function App() {
 
         // Format WhatsApp Message
         let mobile = selectedRoom.mobileNumber ? selectedRoom.mobileNumber.replace(/\D/g, '') : '';
-        if (mobile.startsWith('0')) {
-          mobile = mobile.substring(1);
-        }
         if (mobile.length === 10) {
           mobile = '91' + mobile;
         }
@@ -716,10 +590,7 @@ export default function App() {
         const encodedText = encodeURIComponent(whatsappMsg);
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${mobile}&text=${encodedText}`;
         
-        const newWin = window.open(whatsappUrl, '_blank');
-        if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
-          window.location.href = whatsappUrl;
-        }
+        window.open(whatsappUrl, '_blank');
         showToast("📱 Redirecting to WhatsApp...");
       } catch (err) {
         showToast("⚠️ Error while formatting WhatsApp share.");
@@ -875,22 +746,13 @@ export default function App() {
             
             <div className="section-title">
               <span>House Partition List</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  className="badge" 
-                  style={{ cursor: 'pointer', border: '1px solid var(--primary)', backgroundColor: 'transparent', color: 'var(--primary)', padding: '8px 16px', fontWeight: 'bold' }}
-                  onClick={handleExportCSV}
-                >
-                  📥 Export CSV Register
-                </button>
-                <button 
-                  className="badge badge-occupied" 
-                  style={{ cursor: 'pointer', border: 'none', padding: '8px 16px' }}
-                  onClick={() => setCurrentView('add_tenant')}
-                >
-                  ➕ Add Tenant
-                </button>
-              </div>
+              <button 
+                className="badge badge-occupied" 
+                style={{ cursor: 'pointer', border: 'none', padding: '8px 16px' }}
+                onClick={() => setCurrentView('add_tenant')}
+              >
+                ➕ Add Tenant
+              </button>
             </div>
 
             {/* Old House Group block */}
@@ -1022,154 +884,61 @@ export default function App() {
                       <div className="notes-text">{selectedRoom.notes}</div>
                     </div>
                   )}
-
-                  {/* Documents Attachments section if they exist */}
-                  {(selectedRoom.aadhaarCardFile || selectedRoom.rentAgreementFile) && (
-                    <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--slate-200)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <span className="form-label" style={{ fontSize: '12px', fontWeight: 'bold' }}>📎 Digital Document Vault:</span>
-                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        {selectedRoom.aadhaarCardFile && (
-                          <a 
-                            href={selectedRoom.aadhaarCardFile} 
-                            download={`Aadhaar_${selectedRoom.tenantName || selectedRoom.roomNumber}.png`}
-                            className="badge badge-vacant"
-                            style={{ textDecoration: 'none', padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', border: '1px solid var(--slate-300)' }}
-                          >
-                            🪪 Download Aadhaar Scan
-                          </a>
-                        )}
-                        {selectedRoom.rentAgreementFile && (
-                          <a 
-                            href={selectedRoom.rentAgreementFile} 
-                            download={`Agreement_${selectedRoom.tenantName || selectedRoom.roomNumber}.png`}
-                            className="badge badge-vacant"
-                            style={{ textDecoration: 'none', padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', border: '1px solid var(--slate-300)' }}
-                          >
-                            📄 Download Agreement Scan
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Dues and Payments Buttons */}
+                {/* Dues and Payments buttons */}
                 <div className="detail-card">
                   <div className="detail-header">
-                    <span style={{ fontWeight: '800', fontSize: '18px' }}>Payment Dues Ledger</span>
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-light)', fontWeight: 'bold' }}>
-                      Method: {selectedRoom.paymentMethod || 'Cash'}
-                    </span>
+                    <span style={{ fontWeight: '800', fontSize: '18px' }}>Payment Dues Summary</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>Auto updating</span>
                   </div>
 
-                  {/* Rent Row */}
                   <div className="detail-row">
-                    <span className="detail-label">Rent status</span>
+                    <span className="detail-label">Current Rent Dues</span>
                     <span className="detail-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`badge ${selectedRoom.rentStatus === 'PAID' ? 'badge-paid' : (selectedRoom.rentStatus === 'PARTIAL' ? 'badge-occupied' : 'badge-due')}`}>
-                        {selectedRoom.rentStatus || 'DUE'}
+                      <span className={`badge ${selectedRoom.rentStatus === 'PAID' ? 'badge-paid' : 'badge-due'}`}>
+                        {selectedRoom.rentStatus === 'PAID' ? 'PAID' : 'DUE'}
                       </span>
+                      {selectedRoom.rentStatus !== 'PAID' && `₹${selectedRoom.monthlyRent}`}
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 8px 10px 8px', fontSize: '13px', color: 'var(--text-light)', borderBottom: '1px solid var(--slate-100)' }}>
-                    <div>Monthly Rent: <strong>₹{selectedRoom.monthlyRent}</strong></div>
-                    <div>Carryforward Dues: <strong>₹{selectedRoom.rentBalanceDues || 0}</strong></div>
-                    <div>Paid Rent: <strong style={{ color: 'green' }}>₹{selectedRoom.paidRentAmount || 0}</strong></div>
-                    <div>Remaining Rent Due: <strong style={{ color: 'var(--danger)' }}>₹{Math.max(0, (selectedRoom.monthlyRent + selectedRoom.rentBalanceDues) - selectedRoom.paidRentAmount)}</strong></div>
-                  </div>
 
-                  {/* Electricity Row */}
-                  <div className="detail-row" style={{ marginTop: '10px' }}>
-                    <span className="detail-label">Electricity status</span>
+                  <div className="detail-row">
+                    <span className="detail-label">Electricity Bill Due</span>
                     <span className="detail-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`badge ${selectedRoom.electricityStatus === 'PAID' ? 'badge-paid' : (selectedRoom.electricityStatus === 'PARTIAL' ? 'badge-occupied' : 'badge-due')}`}>
-                        {selectedRoom.electricityStatus || 'DUE'}
+                      <span className={`badge ${selectedRoom.electricityStatus === 'PAID' ? 'badge-paid' : 'badge-due'}`}>
+                        {selectedRoom.electricityStatus === 'PAID' ? 'PAID' : 'DUE'}
                       </span>
+                      {selectedRoom.electricityStatus !== 'PAID' && `₹${selectedRoom.electricityBill}`}
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 8px 10px 8px', fontSize: '13px', color: 'var(--text-light)', borderBottom: '1px solid var(--slate-100)' }}>
-                    <div>Current Bill: <strong>₹{selectedRoom.electricityBill}</strong></div>
-                    <div>Carryforward Dues: <strong>₹{selectedRoom.electricityBalanceDues || 0}</strong></div>
-                    <div>Paid Electricity: <strong style={{ color: 'green' }}>₹{selectedRoom.paidElectricityAmount || 0}</strong></div>
-                    <div>Remaining Electricity Due: <strong style={{ color: 'var(--danger)' }}>₹{Math.max(0, (selectedRoom.electricityBill + selectedRoom.electricityBalanceDues) - selectedRoom.paidElectricityAmount)}</strong></div>
-                  </div>
 
-                  <div className="detail-row" style={{ backgroundColor: 'var(--slate-50)', padding: '12px 10px', borderRadius: '8px', marginTop: '10px' }}>
-                    <span className="detail-label" style={{ fontWeight: '700', color: 'var(--text-main)' }}>Total Due Outstanding</span>
+                  <div className="detail-row" style={{ backgroundColor: 'var(--slate-50)', padding: '12px 10px', borderRadius: '8px' }}>
+                    <span className="detail-label" style={{ fontWeight: '700', color: 'var(--text-main)' }}>Total Bill Amount</span>
                     <span className="detail-val detail-val-highlight">
                       ₹{
-                        Math.max(0, (selectedRoom.monthlyRent + selectedRoom.rentBalanceDues) - selectedRoom.paidRentAmount) + 
-                        Math.max(0, (selectedRoom.electricityBill + selectedRoom.electricityBalanceDues) - selectedRoom.paidElectricityAmount)
+                        (selectedRoom.rentStatus !== 'PAID' ? selectedRoom.monthlyRent : 0) + 
+                        (selectedRoom.electricityStatus !== 'PAID' ? selectedRoom.electricityBill : 0)
                       }
                     </span>
                   </div>
 
-                  {/* Payment Collection Form */}
-                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid var(--slate-100)' }}>
-                    <div style={{ fontSize: '14.5px', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '10px' }}>
-                      💰 Collect Tenant Payment
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '11px', fontWeight: 'bold' }}>Payment Target</label>
-                        <select 
-                          className="form-input" 
-                          value={paymentTarget} 
-                          onChange={(e) => {
-                            setPaymentTarget(e.target.value);
-                            setPaymentAmount('');
-                          }}
-                          style={{ padding: '8px', fontSize: '12.5px' }}
-                        >
-                          <option value="rent">Rent Dues</option>
-                          <option value="electricity">Electricity Dues</option>
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '11px', fontWeight: 'bold' }}>Payment Method</label>
-                        <select 
-                          className="form-input" 
-                          value={paymentMethod} 
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                          style={{ padding: '8px', fontSize: '12.5px' }}
-                        >
-                          <option value="Cash">Cash</option>
-                          <option value="UPI">UPI / GPay</option>
-                          <option value="Bank Transfer">Bank Transfer</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="form-group" style={{ marginBottom: '12px' }}>
-                      <label className="form-label" style={{ fontSize: '11px', fontWeight: 'bold' }}>Amount Paid (₹)</label>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <input 
-                          type="number" 
-                          className="form-input" 
-                          placeholder={`Remaining: ₹${getRemainingDues(paymentTarget)}`} 
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value)}
-                          style={{ padding: '8px', fontSize: '12.5px', flex: 1 }}
-                        />
-                        <button 
-                          type="button" 
-                          className="badge" 
-                          style={{ border: '1px solid var(--primary)', backgroundColor: 'transparent', color: 'var(--primary)', cursor: 'pointer', padding: '0 12px', fontSize: '12px', fontWeight: 'bold' }}
-                          onClick={() => setPaymentAmount(String(getRemainingDues(paymentTarget)))}
-                        >
-                          Full
-                        </button>
-                      </div>
-                    </div>
-                    
+                  <div className="flex-row-2">
                     <button 
                       className="btn-large btn-success" 
-                      onClick={handleRecordPaymentSubmit}
-                      style={{ padding: '10px 16px', fontSize: '13px', width: '100%', borderRadius: '8px' }}
+                      onClick={handleMarkRentPaid}
+                      disabled={selectedRoom.rentStatus === 'PAID'}
+                      style={{ opacity: selectedRoom.rentStatus === 'PAID' ? 0.6 : 1 }}
                     >
-                      💵 Save Collection Action
+                      ✅ Mark Rent Paid
+                    </button>
+                    <button 
+                      className="btn-large btn-success" 
+                      onClick={handleMarkElectricityPaid}
+                      disabled={selectedRoom.electricityStatus === 'PAID'}
+                      style={{ opacity: selectedRoom.electricityStatus === 'PAID' ? 0.6 : 1 }}
+                    >
+                      ✅ Mark Elec Paid
                     </button>
                   </div>
                 </div>
@@ -1694,30 +1463,6 @@ export default function App() {
                       value={editForm.joiningDate}
                       onChange={(e) => setEditForm(prev => ({ ...prev, joiningDate: e.target.value }))}
                     />
-                  </div>
-
-                  {/* Documents Vault Uploads */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', border: '1px dashed var(--slate-300)', padding: '12px', borderRadius: '12px', backgroundColor: 'var(--slate-50)' }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: '12px', fontWeight: 'bold' }}>🪪 Upload Aadhaar Scan</label>
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf"
-                        onChange={(e) => handleFileChange(e, 'aadhaarCardFile')}
-                        style={{ fontSize: '11px', width: '100%' }}
-                      />
-                      {editForm.aadhaarCardFile && <span style={{ fontSize: '11px', color: 'green', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>✓ Loaded</span>}
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: '12px', fontWeight: 'bold' }}>📄 Upload Agreement Scan</label>
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf"
-                        onChange={(e) => handleFileChange(e, 'rentAgreementFile')}
-                        style={{ fontSize: '11px', width: '100%' }}
-                      />
-                      {editForm.rentAgreementFile && <span style={{ fontSize: '11px', color: 'green', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>✓ Loaded</span>}
-                    </div>
                   </div>
 
                   {/* Meter Readings */}
