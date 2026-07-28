@@ -137,6 +137,8 @@ export default function App() {
         setSelectedRoomId(null);
         fetchData();
       }
+      // Reset scroll position to top
+      window.scrollTo(0, 0);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -192,6 +194,8 @@ export default function App() {
     }
     // Push browser history state
     window.history.pushState({ view: viewName, selectedRoomId: roomId }, "");
+    // Reset scroll position to top
+    window.scrollTo(0, 0);
   };
 
   // Back to dashboard handler
@@ -204,6 +208,7 @@ export default function App() {
       setSelectedRoom(null);
       setSelectedRoomId(null);
       fetchData();
+      window.scrollTo(0, 0);
     }
   };
 
