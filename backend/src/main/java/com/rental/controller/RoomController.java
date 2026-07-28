@@ -268,36 +268,138 @@ public class RoomController {
         return ResponseEntity.ok(savedRoom);
     }
 
-    // 6. Mark rent paid
+    // Payment Request DTO
+    public static class PaymentRequest {
+        private double amountPaid;
+        private String paymentMethod;
+
+        public PaymentRequest() {}
+
+        public double getAmountPaid() {
+            return amountPaid;
+        }
+
+        public void setAmountPaid(double amountPaid) {
+            this.amountPaid = amountPaid;
+        }
+
+        public String getPaymentMethod() {
+            return paymentMethod;
+        }
+
+        public void setPaymentMethod(String paymentMethod) {
+            this.paymentMethod = paymentMethod;
+        }
+    }
+
+    // Rollover outstanding dues when new billing cycle starts
+    private void checkAndRolloverDues(Room room, String currentMonth) {
+        Optional<RoomHistory> currentHist = roomHistoryRepository.findByRoomIdAndMonth(room.getId(), currentMonth);
+        if (currentHist.isEmpty()) {
+            double unpaidRent = 0.0;
+            if (!"PAID".equalsIgnoreCase(room.getRentStatus())) {
+                unpaidRent = (room.getMonthlyRent() + room.getRentBalanceDues()) - room.getPaidRentAmount();
+            }
+            double unpaidElec = 0.0;
+            if (!"PAID".equalsIgnoreCase(room.getElectricityStatus())) {
+                unpaidElec = (room.getElectricityBill() + room.getElectricityBalanceDues()) - room.getPaidElectricityAmount();
+            }
+            
+            // Carry forward unpaid balances
+            room.setRentBalanceDues(Math.max(0.0, unpaidRent));
+            room.setElectricityBalanceDues(Math.max(0.0, unpaidElec));
+            
+            // Reset paid trackers for the new month
+            room.setPaidRentAmount(0.0);
+            room.setPaidElectricityAmount(0.0);
+            room.setRentStatus("DUE"); // new month starts with new rent due
+            
+            room.setElectricityStatus("PAID"); // resets until new bill calculations
+            room.setElectricityBill(0.0);
+            room.setUnitsUsed(0.0);
+            
+            roomRepository.save(room);
+        }
+    }
+
+    // 6. Mark rent paid / partial payment
     @PostMapping("/rooms/{id}/mark-rent-paid")
-    public ResponseEntity<?> markRentPaid(@PathVariable Long id) {
+    public ResponseEntity<?> markRentPaid(@PathVariable Long id, @RequestBody(required = false) PaymentRequest request) {
         Optional<Room> optionalRoom = roomRepository.findById(id);
         if (optionalRoom.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         Room room = optionalRoom.get();
-        room.setRentStatus("PAID");
-        Room savedRoom = roomRepository.save(room);
+        checkAndRolloverDues(room, getCurrentMonthString());
 
-        updateOrAddHistory(savedRoom, getCurrentMonthString(), true, false);
+        double amountPaid = room.getMonthlyRent() + room.getRentBalanceDues();
+        String method = "Cash";
+
+        if (request != null) {
+            amountPaid = request.getAmountPaid();
+            if (request.getPaymentMethod() != null) {
+                method = request.getPaymentMethod();
+            }
+        }
+
+        room.setPaidRentAmount(amountPaid);
+        room.setPaymentMethod(method);
+        
+        double balance = (room.getMonthlyRent() + room.getRentBalanceDues()) - amountPaid;
+        room.setRentBalanceDues(Math.max(0.0, balance));
+
+        if (balance <= 0.0) {
+            room.setRentStatus("PAID");
+        } else if (amountPaid > 0.0) {
+            room.setRentStatus("PARTIAL");
+        } else {
+            room.setRentStatus("DUE");
+        }
+
+        Room savedRoom = roomRepository.save(room);
+        updateOrAddHistory(savedRoom, getCurrentMonthString(), false, false);
 
         return ResponseEntity.ok(savedRoom);
     }
 
-    // 7. Mark electricity paid
+    // 7. Mark electricity paid / partial payment
     @PostMapping("/rooms/{id}/mark-electricity-paid")
-    public ResponseEntity<?> markElectricityPaid(@PathVariable Long id) {
+    public ResponseEntity<?> markElectricityPaid(@PathVariable Long id, @RequestBody(required = false) PaymentRequest request) {
         Optional<Room> optionalRoom = roomRepository.findById(id);
         if (optionalRoom.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         Room room = optionalRoom.get();
-        room.setElectricityStatus("PAID");
-        Room savedRoom = roomRepository.save(room);
+        checkAndRolloverDues(room, getCurrentMonthString());
 
-        updateOrAddHistory(savedRoom, getCurrentMonthString(), false, true);
+        double amountPaid = room.getElectricityBill() + room.getElectricityBalanceDues();
+        String method = "Cash";
+
+        if (request != null) {
+            amountPaid = request.getAmountPaid();
+            if (request.getPaymentMethod() != null) {
+                method = request.getPaymentMethod();
+            }
+        }
+
+        room.setPaidElectricityAmount(amountPaid);
+        room.setPaymentMethod(method);
+
+        double balance = (room.getElectricityBill() + room.getElectricityBalanceDues()) - amountPaid;
+        room.setElectricityBalanceDues(Math.max(0.0, balance));
+
+        if (balance <= 0.0) {
+            room.setElectricityStatus("PAID");
+        } else if (amountPaid > 0.0) {
+            room.setElectricityStatus("PARTIAL");
+        } else {
+            room.setElectricityStatus("DUE");
+        }
+
+        Room savedRoom = roomRepository.save(room);
+        updateOrAddHistory(savedRoom, getCurrentMonthString(), false, false);
 
         return ResponseEntity.ok(savedRoom);
     }
@@ -346,22 +448,24 @@ public class RoomController {
             history.setRoom(room);
             history.setRoomNumber(room.getRoomNumber());
             history.setMonth(monthStr);
-            // Default statuses matches current state
-            history.setRentPaid("PAID".equalsIgnoreCase(room.getRentStatus()));
-            history.setElectricityPaid("PAID".equalsIgnoreCase(room.getElectricityStatus()));
-        }
-
-        // Apply overrides if action was triggered
-        if (forceRentPaid) {
-            history.setRentPaid(true);
-        }
-        if (forceElecPaid) {
-            history.setElectricityPaid(true);
         }
 
         history.setRent(room.getMonthlyRent());
         history.setElectricityBill(room.getElectricityBill());
-        history.setTotal(history.getRent() + history.getElectricityBill());
+        history.setPaidRentAmount(room.getPaidRentAmount());
+        history.setRentBalanceDues(room.getRentBalanceDues());
+        history.setPaidElectricityAmount(room.getPaidElectricityAmount());
+        history.setElectricityBalanceDues(room.getElectricityBalanceDues());
+        history.setPaymentMethod(room.getPaymentMethod());
+
+        double remRent = Math.max(0.0, (room.getMonthlyRent() + room.getRentBalanceDues()) - room.getPaidRentAmount());
+        double remElec = Math.max(0.0, (room.getElectricityBill() + room.getElectricityBalanceDues()) - room.getPaidElectricityAmount());
+
+        history.setRentPaid(remRent <= 0.0);
+        history.setElectricityPaid(remElec <= 0.0);
+        
+        // Total outstanding dues remaining:
+        history.setTotal(remRent + remElec);
         
         // Update reading logs history values
         history.setPreviousReading(room.getPreviousMeterReading());
@@ -371,13 +475,18 @@ public class RoomController {
         // Calculate visual status string
         if (history.isRentPaid() && history.isElectricityPaid()) {
             history.setStatus("Paid");
-            history.setPaymentDate(LocalDate.now());
+            if (history.getPaymentDate() == null) {
+                history.setPaymentDate(LocalDate.now());
+            }
         } else if (!history.isRentPaid() && !history.isElectricityPaid()) {
             history.setStatus("Rent & Elec Due");
+            history.setPaymentDate(null);
         } else if (history.isRentPaid()) {
             history.setStatus("Elec Due");
+            history.setPaymentDate(null);
         } else {
             history.setStatus("Rent Due");
+            history.setPaymentDate(null);
         }
 
         roomHistoryRepository.save(history);
@@ -435,11 +544,21 @@ public class RoomController {
         room.setRentStatus(updatedRoom.getRentStatus() != null ? updatedRoom.getRentStatus() : "PAID");
         room.setElectricityStatus(updatedRoom.getElectricityStatus() != null ? updatedRoom.getElectricityStatus() : "PAID");
 
+        // New properties mapping
+        room.setPaidRentAmount(updatedRoom.getPaidRentAmount());
+        room.setRentBalanceDues(updatedRoom.getRentBalanceDues());
+        room.setPaidElectricityAmount(updatedRoom.getPaidElectricityAmount());
+        room.setElectricityBalanceDues(updatedRoom.getElectricityBalanceDues());
+        room.setPaymentMethod(updatedRoom.getPaymentMethod() != null ? updatedRoom.getPaymentMethod() : "Cash");
+        room.setAadhaarCardFile(updatedRoom.getAadhaarCardFile());
+        room.setRentAgreementFile(updatedRoom.getRentAgreementFile());
+
         Room savedRoom = roomRepository.save(room);
         
         // If room is occupied, synchronize history for the current month.
         if (savedRoom.isOccupied()) {
-            updateOrAddHistory(savedRoom, getCurrentMonthString(), "PAID".equalsIgnoreCase(savedRoom.getRentStatus()), "PAID".equalsIgnoreCase(savedRoom.getElectricityStatus()));
+            checkAndRolloverDues(savedRoom, getCurrentMonthString());
+            updateOrAddHistory(savedRoom, getCurrentMonthString(), false, false);
         }
 
         return ResponseEntity.ok(savedRoom);
