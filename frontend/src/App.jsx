@@ -111,6 +111,40 @@ export default function App() {
     fetchData();
   }, []);
 
+  // Listen to browser Back/Forward (popstate event)
+  useEffect(() => {
+    // Set initial state on mount if it's empty
+    if (!window.history.state) {
+      window.history.replaceState({ view: 'dashboard', selectedRoomId: null }, "");
+    }
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (state && state.view) {
+        setCurrentView(state.view);
+        if (state.view === 'details' && state.selectedRoomId) {
+          setSelectedRoomId(state.selectedRoomId);
+          fetchRoomDetails(state.selectedRoomId);
+        } else {
+          setSelectedRoom(null);
+          setSelectedRoomId(null);
+          fetchData();
+        }
+      } else {
+        // Fallback to dashboard
+        setCurrentView('dashboard');
+        setSelectedRoom(null);
+        setSelectedRoomId(null);
+        fetchData();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // Sync vacant room choice when chosen house changes in form
   useEffect(() => {
     const vacantList = rooms.filter(r => !r.occupied && r.houseName === tenantForm.houseName);
@@ -149,19 +183,33 @@ export default function App() {
     }
   };
 
+  // Central Router/Navigation Helper
+  const transitionToView = (viewName, roomId = null) => {
+    setCurrentView(viewName);
+    if (viewName === 'details' && roomId) {
+      setSelectedRoomId(roomId);
+      fetchRoomDetails(roomId);
+    }
+    // Push browser history state
+    window.history.pushState({ view: viewName, selectedRoomId: roomId }, "");
+  };
+
   // Back to dashboard handler
   const handleBackToDashboard = () => {
-    fetchData();
-    setCurrentView('dashboard');
-    setSelectedRoom(null);
-    setSelectedRoomId(null);
+    if (window.history.state && window.history.state.view !== 'dashboard') {
+      window.history.back();
+    } else {
+      // Fallback direct navigation
+      setCurrentView('dashboard');
+      setSelectedRoom(null);
+      setSelectedRoomId(null);
+      fetchData();
+    }
   };
 
   // Check details
   const handleRoomClick = (id) => {
-    setSelectedRoomId(id);
-    fetchRoomDetails(id);
-    setCurrentView('details');
+    transitionToView('details', id);
   };
 
   // Mark Rent Paid
@@ -998,7 +1046,7 @@ export default function App() {
               <button 
                 className="badge badge-occupied" 
                 style={{ cursor: 'pointer', border: 'none', padding: '8px 16px' }}
-                onClick={() => setCurrentView('add_tenant')}
+                onClick={() => transitionToView('add_tenant')}
               >
                 ➕ Add Tenant
               </button>
@@ -1080,7 +1128,7 @@ export default function App() {
                       roomSelectMode: 'existing', 
                       existingRoomNumber: selectedRoom.roomNumber 
                     }));
-                    setCurrentView('add_tenant');
+                    transitionToView('add_tenant');
                   }}
                 >
                   ➕ Setup Tenant Here
