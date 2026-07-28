@@ -417,199 +417,356 @@ export default function App() {
     const doc = new jsPDF('p', 'mm', 'a4'); // A4 size: 210 x 297mm
     
     // styles
-    const primaryColor = "#1e3a8a"; // deep blue
     const darkText = "#1f2937";
-    const lightText = "#4b5563";
-    
-    // Borders
-    doc.setDrawColor(226, 232, 240); // slate-200
-    doc.rect(8, 8, 194, 281);
+    const lightText = "#6b7280";
     
     // Title Header Block
-    doc.setFillColor(30, 58, 138); 
-    doc.rect(8, 8, 194, 26, "F");
+    doc.setFillColor(11, 58, 130); 
+    doc.rect(10, 8, 190, 28, "F");
     
+    // Circle wrapper with "K" inside it
+    doc.setFillColor(255, 255, 255);
+    doc.circle(20, 22, 6.5, "F");
+    doc.setTextColor(11, 58, 130);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("K", 20, 26, { align: "center" });
+
+    // Text Header
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("KASTURI RENTAL ROOMS - INVOICE", 105, 18, { align: "center" });
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Landlord Monthly Billing Ledger System", 105, 26, { align: "center" });
-    
-    // Metadata block
-    doc.setTextColor(darkText);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("BILL PARTICULARS", 16, 44);
-    doc.setLineWidth(0.4);
-    doc.setDrawColor(59, 130, 246);
-    doc.line(16, 46, 60, 46);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(lightText);
-    doc.text(`Billing Month: ${monthLabel}`, 16, 52);
-    doc.text(`Generated Date: ${new Date().toLocaleDateString('en-GB')}`, 16, 58);
-    
-    // Room details right align
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.text("HOUSE DETAILS", 115, 44);
-    doc.line(115, 46, 160, 46);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(lightText);
-    doc.text(`House Sect: ${roomObj.houseName || 'Old House'}`, 115, 52);
-    doc.text(`Room/Unit: ${roomObj.roomNumber}`, 115, 58);
-    doc.text(`Address: ${roomObj.address || 'N/A'}`, 115, 64);
-    
-    // Line separator
-    doc.setDrawColor(226, 232, 240);
-    doc.line(16, 70, 194, 70);
-    
-    // Tenant section
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.text("TENANT DETAILS", 16, 78);
-    doc.line(16, 80, 60, 80);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(lightText);
-    doc.text(`Tenant Name: ${roomObj.tenantName || 'N/A'}`, 16, 86);
-    doc.text(`Mobile Number: ${roomObj.mobileNumber || 'N/A'}`, 16, 92);
-    if (roomObj.membersCount) {
-      doc.text(`Number of Members: ${roomObj.membersCount}`, 115, 86);
-    }
-    
-    doc.line(16, 98, 194, 98);
-
-    // SECTION 1: ELECTRICITY CHARGES
-    doc.setTextColor(30, 58, 138);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("⚡ SECTION 1: ELECTRICITY POWER CHARGES", 16, 106);
-    doc.setDrawColor(191, 219, 254);
-    doc.line(16, 108, 194, 108);
-
-    // Meter readings box
-    doc.setFillColor(248, 250, 252);
-    doc.rect(16, 112, 178, 20, "F");
-    doc.setDrawColor(226, 232, 240);
-    doc.rect(16, 112, 178, 20, "S");
-
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("Prev Reading", 22, 118);
-    doc.text("Curr Reading", 72, 118);
-    doc.text("Units Used", 122, 118);
-    doc.text("Tariff Price", 162, 118);
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(lightText);
-    doc.text(`${prevReading} units`, 22, 126);
-    doc.text(`${currReading} units`, 72, 126);
-    doc.text(`${unitsVal} units`, 122, 126);
-    doc.text(`₹10.00 / unit`, 162, 126);
-
-    // Electricity total row
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Total Electricity Power Dues:", 16, 140);
-    doc.setTextColor(220, 38, 38);
-    doc.text(`₹${elecBill}`, 180, 140, { align: "right" });
-
-    // SECTION 2: MONTHLY RENT CHARGES
-    doc.setTextColor(30, 58, 138);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("🏠 SECTION 2: MONTHLY HOUSE RENT CHARGES", 16, 150);
-    doc.setDrawColor(191, 219, 254);
-    doc.line(16, 152, 194, 152);
-
-    // Rent detail box
-    doc.setFillColor(248, 250, 252);
-    doc.rect(16, 156, 178, 14, "F");
-    doc.rect(16, 156, 178, 14, "S");
-
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("Rent Description", 22, 164);
-    doc.text("Period Basis", 122, 164);
-    doc.text("Amount Dues", 162, 164);
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(lightText);
-    doc.text("Fixed Room Monthly Lease Rent", 22, 168);
-    doc.text("Monthly basis", 122, 168);
-    doc.text(`₹${rentVal}`, 162, 168);
-
-    // Rent total row
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Total Room Rent Dues:", 16, 178);
-    doc.setTextColor(220, 38, 38);
-    doc.text(`₹${rentVal}`, 180, 178, { align: "right" });
-
-    // SECTION 3: TOTAL OUTSTANDING DUE AMOUNT & QR CODE PAYMENT
-    doc.setTextColor(30, 58, 138);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("💵 SECTION 3: GRAND TOTAL & PAYMENT GATEWAY", 16, 188);
-    doc.line(16, 190, 194, 190);
-
-    // Summary box
-    doc.setFillColor(241, 245, 249);
-    doc.rect(16, 194, 178, 14, "F");
-    doc.setFillColor(30, 58, 138);
-    doc.rect(16, 194, 5, 14, "F"); // visual accent strip
-
-    doc.setTextColor(darkText);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("GRAND TOTAL QUEUED OUTSTANDING DUANCE", 26, 203);
     doc.setFontSize(14);
-    doc.setTextColor(194, 65, 12); // orange-700
-    doc.text(`₹${totalVal}`, 180, 203, { align: "right" });
+    doc.text("KASTURI RENTAL ROOMS", 29, 18);
+    doc.setFontSize(13);
+    doc.text("INVOICE", 29, 23.5);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.text("Landlord Monthly Billing Ledger System", 29, 29);
+    
+    // Right Columns Header Details
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("📅   Billing Month", 135, 16);
+    doc.text("📅   Generated Date", 135, 22);
+    doc.text("📄   Invoice ID", 135, 28);
 
-    // UPI Details and QR code block
+    const invoiceId = `INV-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(roomObj.id || 0).padStart(3, '0')}`;
+    doc.setFont("helvetica", "bold");
+    doc.text(`:   ${monthLabel}`, 162, 16);
+    doc.text(`:   ${new Date().toLocaleDateString('en-GB')}`, 162, 22);
+    doc.text(`:   ${invoiceId}`, 162, 28);
+    
+    // Tenant section Card
     doc.setDrawColor(226, 232, 240);
     doc.setFillColor(255, 255, 255);
-    doc.rect(16, 214, 178, 48, "FD");
+    doc.roundedRect(10, 39, 190, 18, 2, 2, "FD");
 
+    // Avatar badge
+    doc.setFillColor(239, 246, 255);
+    doc.circle(20, 48, 5.5, "F");
+    doc.setTextColor(11, 58, 130);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("👤", 20, 50.5, { align: "center" });
+
+    // Label and Values
+    doc.setFontSize(8.5);
+    doc.text("TENANT DETAILS", 28, 44);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(lightText);
+    doc.text("Tenant Name", 28, 51);
+    doc.text("Mobile Number", 110, 51);
+
+    doc.setTextColor(darkText);
+    doc.setFont("helvetica", "bold");
+    doc.text(`:   ${roomObj.tenantName || 'N/A'}`, 51, 51);
+    doc.text(`:   ${roomObj.mobileNumber || 'N/A'}`, 133, 51);
+
+    // Bill Particulars & House Details (Side & Side Cards)
+    // Left Card
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(10, 60, 93, 22, 2, 2, "S");
+    doc.setFillColor(239, 246, 255);
+    doc.circle(16, 67, 3.5, "F");
+    doc.setTextColor(11, 58, 130);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("📋", 16, 69.5, { align: "center" });
+
+    doc.text("BILL PARTICULARS", 22, 68);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(lightText);
+    doc.text("Billing Month", 16, 75);
+    doc.text("Generated Date", 16, 79);
+
+    doc.setTextColor(darkText);
+    doc.text(`:  ${monthLabel}`, 40, 75);
+    doc.text(`:  ${new Date().toLocaleDateString('en-GB')}`, 40, 79);
+
+    // Right Card
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(107, 60, 93, 22, 2, 2, "S");
+    doc.setFillColor(239, 246, 255);
+    doc.circle(113, 67, 3.5, "F");
+    doc.setTextColor(11, 58, 130);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("🏠", 113, 69.5, { align: "center" });
+
+    doc.text("HOUSE DETAILS", 119, 68);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(lightText);
+    doc.text("House Sect", 113, 75);
+    doc.text("Room/Unit", 113, 79);
+    if (roomObj.membersCount) {
+      doc.text("Members Count", 113, 83);
+    } else {
+      doc.text("Address", 113, 83);
+    }
+
+    doc.setTextColor(darkText);
+    doc.text(`:  ${roomObj.houseName || 'Old House'}`, 136, 75);
+    doc.text(`:  ${roomObj.roomNumber}`, 136, 79);
+    if (roomObj.membersCount) {
+      doc.text(`:  ${roomObj.membersCount}`, 136, 83);
+    } else {
+      doc.text(`:  ${roomObj.address || 'N/A'}`, 136, 83);
+    }
+
+    // SECTION 1: ELECTRICITY CHARGES
+    doc.setDrawColor(30, 58, 138);
+    doc.roundedRect(10, 85, 190, 32, 2, 2, "S");
+    
+    // Top border header inside block
+    doc.setFillColor(239, 246, 255);
+    doc.roundedRect(10, 85, 190, 7, 2, 2, "F");
+    doc.rect(10, 90, 190, 2, "F");
+    
+    doc.setTextColor(30, 58, 138);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.text("1   ELECTRICITY POWER CHARGES  ⚡", 14, 90);
+
+    // Grid details
+    doc.setLineWidth(0.2);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(57.5, 92, 57.5, 109);
+    doc.line(105, 92, 105, 109);
+    doc.line(152.5, 92, 152.5, 109);
+
+    doc.setTextColor(11, 58, 130);
+    doc.setFontSize(7.5);
+    doc.text("🔌  PREV READING", 33.75, 97, { align: "center" });
+    doc.text("🔌  CURR READING", 81.25, 97, { align: "center" });
+    doc.text("⚖️  UNITS USED", 128.75, 97, { align: "center" });
+    doc.text("💳  TARIFF PRICE", 176.25, 97, { align: "center" });
+
+    doc.setTextColor(darkText);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.text(`${prevReading} units`, 33.75, 104, { align: "center" });
+    doc.text(`${currReading} units`, 81.25, 104, { align: "center" });
+    doc.text(`${unitsVal} units`, 128.75, 104, { align: "center" });
+    doc.text("₹10.00 / unit", 176.25, 104, { align: "center" });
+
+    // Electricity total row
+    doc.setFillColor(248, 250, 252);
+    doc.rect(10.1, 109, 189.8, 7.8, "F");
+    doc.line(10, 109, 200, 109);
+    doc.setTextColor(darkText);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Total Electricity Power Dues", 14, 114.5);
+    doc.setTextColor(16, 124, 65); // Green color (#107c41)
+    doc.text(`₹${elecBill}`, 196, 114.5, { align: "right" });
+
+    // SECTION 2: MONTHLY RENT CHARGES
+    doc.setDrawColor(30, 58, 138);
+    doc.roundedRect(10, 120, 190, 26, 2, 2, "S");
+    
+    // Top border header inside block
+    doc.setFillColor(239, 246, 255);
+    doc.roundedRect(10, 120, 190, 7, 2, 2, "F");
+    doc.rect(10, 125, 190, 2, "F");
+    
+    doc.setTextColor(30, 58, 138);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.text("2   MONTHLY HOUSE RENT CHARGES  🏠", 14, 125);
+
+    // Grid details
+    doc.setDrawColor(226, 232, 240);
+    doc.line(73.33, 127, 73.33, 138.5);
+    doc.line(136.66, 127, 136.66, 138.5);
+
+    doc.setTextColor(11, 58, 130);
+    doc.setFontSize(7.5);
+    doc.text("📄  RENT DESCRIPTION", 41.66, 131, { align: "center" });
+    doc.text("📅  PERIOD BASIS", 105, 131, { align: "center" });
+    doc.text("💳  AMOUNT DUES", 168.33, 131, { align: "center" });
+
+    doc.setTextColor(darkText);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.text("Fixed Room Monthly Lease Rent", 41.66, 136, { align: "center" });
+    doc.text("Monthly basis", 105, 136, { align: "center" });
+    doc.text(`₹${rentVal}`, 168.33, 136, { align: "center" });
+
+    // Rent total row
+    doc.setFillColor(248, 250, 252);
+    doc.rect(10.1, 138.5, 189.8, 7.3, "F");
+    doc.line(10, 138.5, 200, 138.5);
+    doc.setTextColor(darkText);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Total Room Rent Dues", 14, 143);
+    doc.setTextColor(220, 38, 38);
+    doc.text(`₹${rentVal}`, 196, 143, { align: "right" });
+
+    // SECTION 3: GRAND TOTAL & PAYMENT SUMMARY
+    doc.setTextColor(30, 58, 138);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.text("3   GRAND TOTAL & PAYMENT SUMMARY  📋", 10, 153);
+    doc.setDrawColor(30, 58, 138);
+    doc.line(10, 155, 200, 155);
+
+    // Summary bar block
+    doc.setFillColor(11, 58, 130);
+    doc.rect(10, 158, 130, 10, "F");
+    doc.setFillColor(7, 43, 99);
+    doc.rect(140, 158, 60, 10, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("GRAND TOTAL QUEUED OUTSTANDING DUE", 14, 164.5);
+    doc.setFontSize(12);
+    doc.text(`₹ ${totalVal}`, 170, 164.5, { align: "center" });
+
+    // Breakdown lists
+    doc.setTextColor(11, 58, 130);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("📋  SUMMARY BREAKDOWN", 10, 172.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(darkText);
+    doc.setFontSize(8.5);
+    doc.text("⚡  Electricity Power Dues", 12, 178);
+    doc.text(`₹${elecBill}`, 196, 178, { align: "right" });
+    doc.setDrawColor(241, 245, 249);
+    doc.line(10, 180, 200, 180);
+
+    doc.text("🏠  Monthly House Rent Dues", 12, 184);
+    doc.text(`₹${rentVal}`, 196, 184, { align: "right" });
+    doc.line(10, 186, 200, 186);
+
+    // Green Highlight Box
+    doc.setFillColor(230, 244, 234);
+    doc.setDrawColor(194, 230, 206);
+    doc.roundedRect(10, 190, 190, 16, 2, 2, "FD");
+
+    // Circle icon
+    doc.setFillColor(19, 115, 51);
+    doc.circle(20, 198, 4.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("💼", 20, 200.5, { align: "center" });
+
+    // Text description
+    doc.setTextColor(19, 115, 51);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("TOTAL AMOUNT DUE", 28, 196.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(47, 108, 66);
+    doc.setFontSize(8);
+    doc.text("Please pay the total outstanding amount.", 28, 201.5);
+
+    // Green pill button
+    doc.setFillColor(19, 115, 51);
+    doc.roundedRect(144, 193, 50, 10, 1.5, 1.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`₹ ${totalVal}`, 169, 199.5, { align: "center" });
+
+    // Payment Methods Footer Panel with QR Code
+    // Left Box: Scan Pay QR
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(10, 210, 93, 54, 2, 2, "S");
     if (qrBase64) {
       try {
-        // Draw QR Image 40mm x 40mm
-        doc.addImage(qrBase64, 'JPEG', 20, 218, 40, 40);
+        doc.addImage(qrBase64, 'JPEG', 36.5, 213, 40, 40);
       } catch (e) {
         console.error("QR Code image loading failure: ", e);
       }
     }
-
-    doc.setTextColor(darkText);
+    doc.setTextColor(11, 58, 130);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("ONLINE PAYMENT INSTRUCTIONS", 66, 224);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(lightText);
     doc.setFontSize(8.5);
-    doc.text("1. Scan the QR code on the left with GPay, PhonePe, Paytm or similar.", 66, 230);
-    doc.text("2. Type exactly the grand total amount listed above: " + `₹${totalVal}`, 66, 235);
-    doc.text("3. Make the UPI transfer directly to the landlord's account.", 66, 240);
-    doc.text("4. Send a receipt screenshot on WhatsApp after payment complete.", 66, 245);
-    
+    doc.text("SCAN QR TO PAY ONLINE", 56.5, 258, { align: "center" });
+
+    // Right Box: Text options
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(107, 210, 93, 54, 2, 2, "S");
+
+    // Row A: online payments
+    doc.setFillColor(239, 246, 255);
+    doc.circle(117, 221, 5, "F");
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("Landlord UPI ID: 7974478116@ibl", 66, 252);
+    doc.text("📱", 117, 224, { align: "center" });
 
-    // Footnote
+    doc.text("WANT TO PAY ONLINE?", 125, 220);
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(lightText);
+    doc.setFontSize(8);
+    doc.text("Use UPI ID to make payment", 125, 224);
+
+    // Pill for UPI ID
+    doc.setDrawColor(30, 58, 138);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(125, 227, 45, 6, 1, 1, "FD");
+    doc.setTextColor(30, 58, 138);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.setFont("helvetica", "italic");
-    doc.text("This is an official computer-generated rent & utility receipt catalog.", 105, 269, { align: "center" });
-    doc.text("Old House: 65 Siddharth nagar | New House: A15 Haripuram Colony.", 105, 274, { align: "center" });
+    doc.text("7974478116@ibl", 147.5, 231.5, { align: "center" });
+
+    // Divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.line(113, 237, 194, 237);
+
+    // Row B: cash payments
+    doc.setFillColor(230, 244, 234);
+    doc.circle(117, 248, 5, "F");
+    doc.setTextColor(19, 115, 51);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("💵", 117, 251, { align: "center" });
+
+    doc.text("WANT TO PAY CASH?", 125, 246);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(lightText);
+    doc.setFontSize(8);
+    doc.text("Please contact the owner", 125, 251);
+    doc.text("for cash payment.", 125, 255);
+
+    // Final Banner
+    doc.setFillColor(232, 240, 254);
+    doc.roundedRect(10, 267, 190, 6, 1, 1, "F");
+
+    doc.setTextColor(30, 58, 138);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("✔   This is an official computer-generated rent & utility receipt.", 105, 271.5, { align: "center" });
     
     return doc;
   };
