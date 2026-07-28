@@ -413,7 +413,7 @@ export default function App() {
   };
 
   // Dynamic A4 PDF Builder using jsPDF
-  const buildInvoicePDF = (roomObj, monthLabel, prevReading, currReading, unitsVal, elecBill, rentVal, totalVal, isPaid, qrBase64) => {
+  const buildInvoicePDF = (roomObj, monthLabel, prevReading, currReading, unitsVal, elecBill, rentVal, totalVal, isPaid) => {
     const doc = new jsPDF('p', 'mm', 'a4'); // A4 size: 210 x 297mm
     
     // styles
@@ -447,9 +447,9 @@ export default function App() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("📅   Billing Month", 135, 16);
-    doc.text("📅   Generated Date", 135, 22);
-    doc.text("📄   Invoice ID", 135, 28);
+    doc.text("Billing Month", 135, 16);
+    doc.text("Generated Date", 135, 22);
+    doc.text("Invoice ID", 135, 28);
 
     const invoiceId = `INV-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(roomObj.id || 0).padStart(3, '0')}`;
     doc.setFont("helvetica", "bold");
@@ -468,7 +468,7 @@ export default function App() {
     doc.setTextColor(11, 58, 130);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("👤", 20, 50.5, { align: "center" });
+    doc.text("T", 20, 51.2, { align: "center" });
 
     // Label and Values
     doc.setFontSize(8.5);
@@ -493,7 +493,7 @@ export default function App() {
     doc.setTextColor(11, 58, 130);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.text("📋", 16, 69.5, { align: "center" });
+    doc.text("B", 16, 69.8, { align: "center" });
 
     doc.text("BILL PARTICULARS", 22, 68);
 
@@ -514,7 +514,7 @@ export default function App() {
     doc.setTextColor(11, 58, 130);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.text("🏠", 113, 69.5, { align: "center" });
+    doc.text("H", 113, 69.8, { align: "center" });
 
     doc.text("HOUSE DETAILS", 119, 68);
 
@@ -549,7 +549,7 @@ export default function App() {
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.text("1   ELECTRICITY POWER CHARGES  ⚡", 14, 90);
+    doc.text("1.  ELECTRICITY POWER CHARGES", 14, 90);
 
     // Grid details
     doc.setLineWidth(0.2);
@@ -560,10 +560,10 @@ export default function App() {
 
     doc.setTextColor(11, 58, 130);
     doc.setFontSize(7.5);
-    doc.text("🔌  PREV READING", 33.75, 97, { align: "center" });
-    doc.text("🔌  CURR READING", 81.25, 97, { align: "center" });
-    doc.text("⚖️  UNITS USED", 128.75, 97, { align: "center" });
-    doc.text("💳  TARIFF PRICE", 176.25, 97, { align: "center" });
+    doc.text("PREV READING", 33.75, 97, { align: "center" });
+    doc.text("CURR READING", 81.25, 97, { align: "center" });
+    doc.text("UNITS USED", 128.75, 97, { align: "center" });
+    doc.text("TARIFF PRICE", 176.25, 97, { align: "center" });
 
     doc.setTextColor(darkText);
     doc.setFont("helvetica", "normal");
@@ -571,7 +571,7 @@ export default function App() {
     doc.text(`${prevReading} units`, 33.75, 104, { align: "center" });
     doc.text(`${currReading} units`, 81.25, 104, { align: "center" });
     doc.text(`${unitsVal} units`, 128.75, 104, { align: "center" });
-    doc.text("₹10.00 / unit", 176.25, 104, { align: "center" });
+    doc.text("Rs. 10.00 / unit", 176.25, 104, { align: "center" });
 
     // Electricity total row
     doc.setFillColor(248, 250, 252);
@@ -582,7 +582,7 @@ export default function App() {
     doc.setFontSize(9);
     doc.text("Total Electricity Power Dues", 14, 114.5);
     doc.setTextColor(16, 124, 65); // Green color (#107c41)
-    doc.text(`₹${elecBill}`, 196, 114.5, { align: "right" });
+    doc.text(`Rs. ${elecBill}`, 196, 114.5, { align: "right" });
 
     // SECTION 2: MONTHLY RENT CHARGES
     doc.setDrawColor(30, 58, 138);
@@ -596,7 +596,7 @@ export default function App() {
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.text("2   MONTHLY HOUSE RENT CHARGES  🏠", 14, 125);
+    doc.text("2.  MONTHLY HOUSE RENT CHARGES", 14, 125);
 
     // Grid details
     doc.setDrawColor(226, 232, 240);
@@ -605,16 +605,16 @@ export default function App() {
 
     doc.setTextColor(11, 58, 130);
     doc.setFontSize(7.5);
-    doc.text("📄  RENT DESCRIPTION", 41.66, 131, { align: "center" });
-    doc.text("📅  PERIOD BASIS", 105, 131, { align: "center" });
-    doc.text("💳  AMOUNT DUES", 168.33, 131, { align: "center" });
+    doc.text("RENT DESCRIPTION", 41.66, 131, { align: "center" });
+    doc.text("PERIOD BASIS", 105, 131, { align: "center" });
+    doc.text("AMOUNT DUES", 168.33, 131, { align: "center" });
 
     doc.setTextColor(darkText);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.text("Fixed Room Monthly Lease Rent", 41.66, 136, { align: "center" });
     doc.text("Monthly basis", 105, 136, { align: "center" });
-    doc.text(`₹${rentVal}`, 168.33, 136, { align: "center" });
+    doc.text(`Rs. ${rentVal}`, 168.33, 136, { align: "center" });
 
     // Rent total row
     doc.setFillColor(248, 250, 252);
@@ -625,13 +625,13 @@ export default function App() {
     doc.setFontSize(9);
     doc.text("Total Room Rent Dues", 14, 143);
     doc.setTextColor(220, 38, 38);
-    doc.text(`₹${rentVal}`, 196, 143, { align: "right" });
+    doc.text(`Rs. ${rentVal}`, 196, 143, { align: "right" });
 
     // SECTION 3: GRAND TOTAL & PAYMENT SUMMARY
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.text("3   GRAND TOTAL & PAYMENT SUMMARY  📋", 10, 153);
+    doc.text("3.  GRAND TOTAL & PAYMENT SUMMARY", 10, 153);
     doc.setDrawColor(30, 58, 138);
     doc.line(10, 155, 200, 155);
 
@@ -646,24 +646,24 @@ export default function App() {
     doc.setFontSize(9);
     doc.text("GRAND TOTAL QUEUED OUTSTANDING DUE", 14, 164.5);
     doc.setFontSize(12);
-    doc.text(`₹ ${totalVal}`, 170, 164.5, { align: "center" });
+    doc.text(`Rs. ${totalVal}`, 170, 164.5, { align: "center" });
 
     // Breakdown lists
     doc.setTextColor(11, 58, 130);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("📋  SUMMARY BREAKDOWN", 10, 172.5);
+    doc.text("SUMMARY BREAKDOWN", 10, 172.5);
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(darkText);
     doc.setFontSize(8.5);
-    doc.text("⚡  Electricity Power Dues", 12, 178);
-    doc.text(`₹${elecBill}`, 196, 178, { align: "right" });
+    doc.text("Electricity Power Dues", 12, 178);
+    doc.text(`Rs. ${elecBill}`, 196, 178, { align: "right" });
     doc.setDrawColor(241, 245, 249);
     doc.line(10, 180, 200, 180);
 
-    doc.text("🏠  Monthly House Rent Dues", 12, 184);
-    doc.text(`₹${rentVal}`, 196, 184, { align: "right" });
+    doc.text("Monthly House Rent Dues", 12, 184);
+    doc.text(`Rs. ${rentVal}`, 196, 184, { align: "right" });
     doc.line(10, 186, 200, 186);
 
     // Green Highlight Box
@@ -677,7 +677,7 @@ export default function App() {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("💼", 20, 200.5, { align: "center" });
+    doc.text("D", 20, 200.5, { align: "center" });
 
     // Text description
     doc.setTextColor(19, 115, 51);
@@ -695,69 +695,54 @@ export default function App() {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text(`₹ ${totalVal}`, 169, 199.5, { align: "center" });
+    doc.text(`Rs. ${totalVal}`, 169, 199.5, { align: "center" });
 
-    // Payment Methods Footer Panel with QR Code
-    // Left Box: Scan Pay QR
+    // Payment Methods Footer Panel (Mockup Style with no QR code, full width layout)
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(10, 210, 93, 54, 2, 2, "S");
-    if (qrBase64) {
-      try {
-        doc.addImage(qrBase64, 'JPEG', 36.5, 213, 40, 40);
-      } catch (e) {
-        console.error("QR Code image loading failure: ", e);
-      }
-    }
-    doc.setTextColor(11, 58, 130);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.text("SCAN QR TO PAY ONLINE", 56.5, 258, { align: "center" });
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(10, 212, 190, 48, 2, 2, "FD");
 
-    // Right Box: Text options
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(107, 210, 93, 54, 2, 2, "S");
-
-    // Row A: online payments
+    // Left Column: online payments
     doc.setFillColor(239, 246, 255);
-    doc.circle(117, 221, 5, "F");
+    doc.circle(20, 226, 5, "F");
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("📱", 117, 224, { align: "center" });
+    doc.text("P", 20, 229.3, { align: "center" });
 
-    doc.text("WANT TO PAY ONLINE?", 125, 220);
+    doc.text("WANT TO PAY ONLINE?", 28, 222);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(lightText);
     doc.setFontSize(8);
-    doc.text("Use UPI ID to make payment", 125, 224);
+    doc.text("Use UPI ID to make payment", 28, 226);
 
     // Pill for UPI ID
     doc.setDrawColor(30, 58, 138);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(125, 227, 45, 6, 1, 1, "FD");
+    doc.roundedRect(28, 229, 65, 8, 1.5, 1.5, "FD");
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.text("7974478116@ibl", 147.5, 231.5, { align: "center" });
+    doc.setFontSize(9.5);
+    doc.text("7974478116@ibl", 60.5, 234.8, { align: "center" });
 
-    // Divider line
+    // Divider line in the middle of bottom card
     doc.setDrawColor(226, 232, 240);
-    doc.line(113, 237, 194, 237);
+    doc.line(105, 218, 105, 254);
 
-    // Row B: cash payments
+    // Right Column: cash payments
     doc.setFillColor(230, 244, 234);
-    doc.circle(117, 248, 5, "F");
+    doc.circle(115, 226, 5, "F");
     doc.setTextColor(19, 115, 51);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("💵", 117, 251, { align: "center" });
+    doc.text("C", 115, 229.3, { align: "center" });
 
-    doc.text("WANT TO PAY CASH?", 125, 246);
+    doc.text("WANT TO PAY CASH?", 123, 222);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(lightText);
     doc.setFontSize(8);
-    doc.text("Please contact the owner", 125, 251);
-    doc.text("for cash payment.", 125, 255);
+    doc.text("Please contact the owner for cash payment.", 123, 226);
+    doc.text("Cash payments can be handed directly to landlord.", 123, 230);
 
     // Final Banner
     doc.setFillColor(232, 240, 254);
@@ -766,41 +751,14 @@ export default function App() {
     doc.setTextColor(30, 58, 138);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("✔   This is an official computer-generated rent & utility receipt.", 105, 271.5, { align: "center" });
+    doc.text("This is an official computer-generated rent & utility receipt.", 105, 271.5, { align: "center" });
     
     return doc;
   };
 
-  // Helper to load static assets like QR image into Base64 for jsPDF
-  const loadQRBase64 = () => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg'));
-      };
-      img.onerror = () => {
-        resolve(null);
-      };
-      img.src = '/qr.jpg';
-    });
-  };
-
   // PDF Trigger events
-  const handleTriggerPDF = async (actionType) => {
+  const handleTriggerPDF = (actionType) => {
     if (!selectedRoom) return;
-    
-    setLoading(true);
-    let qrBase64 = null;
-    try {
-      qrBase64 = await loadQRBase64();
-    } catch (e) {
-      console.error(e);
-    }
 
     const month = selectedRoomHistoryMonth() || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     const prev = selectedRoom.previousMeterReading;
@@ -811,8 +769,7 @@ export default function App() {
     const total = (selectedRoom.rentStatus !== 'PAID' ? rent : 0) + (selectedRoom.electricityStatus !== 'PAID' ? bill : 0);
     const paid = selectedRoom.rentStatus === 'PAID' && selectedRoom.electricityStatus === 'PAID';
 
-    const doc = buildInvoicePDF(selectedRoom, month, prev, curr, units, bill, rent, total, paid, qrBase64);
-    setLoading(false);
+    const doc = buildInvoicePDF(selectedRoom, month, prev, curr, units, bill, rent, total, paid);
     
     if (actionType === 'download') {
       doc.save(`Bill_${selectedRoom.houseName}_Room_${selectedRoom.roomNumber}_${month}.pdf`);
@@ -837,12 +794,12 @@ export default function App() {
         whatsappMsg += `*House Sector:* ${selectedRoom.houseName || 'N/A'}\n`;
         whatsappMsg += `*Room Number:* ${selectedRoom.roomNumber}\n`;
         whatsappMsg += `*Billing Month:* ${month}\n\n`;
-        whatsappMsg += `*Rent Amount:* ₹${selectedRoom.monthlyRent || 0} (${selectedRoom.rentStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
+        whatsappMsg += `*Rent Amount:* Rs. ${selectedRoom.monthlyRent || 0} (${selectedRoom.rentStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
         if (selectedRoom.electricityBill > 0) {
-          whatsappMsg += `*Electricity Bill:* ₹${selectedRoom.electricityBill || 0} (${selectedRoom.electricityStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
+          whatsappMsg += `*Electricity Bill:* Rs. ${selectedRoom.electricityBill || 0} (${selectedRoom.electricityStatus === 'PAID' ? 'PAID' : 'DUE'})\n`;
           whatsappMsg += `*Meter Readings:* Prev ${selectedRoom.previousMeterReading} | Curr ${selectedRoom.currentMeterReading} (${selectedRoom.unitsUsed} units)\n`;
         }
-        whatsappMsg += `\n*Total Due Outstanding:* *₹${total}*\n\n`;
+        whatsappMsg += `\n*Total Due Outstanding:* *Rs. ${total}*\n\n`;
         whatsappMsg += `Please clear your dues as soon as possible. Thank you!`;
 
         const encodedText = encodeURIComponent(whatsappMsg);
@@ -857,16 +814,8 @@ export default function App() {
   };
 
   // History PDF trigger
-  const handleHistoryPDF = async (hist) => {
+  const handleHistoryPDF = (hist) => {
     if (!selectedRoom) return;
-    
-    setLoading(true);
-    let qrBase64 = null;
-    try {
-      qrBase64 = await loadQRBase64();
-    } catch (e) {
-      console.error(e);
-    }
 
     const paid = hist.status === 'Paid';
     const doc = buildInvoicePDF(
@@ -878,10 +827,8 @@ export default function App() {
       hist.electricityBill,
       hist.rent,
       hist.total,
-      paid,
-      qrBase64
+      paid
     );
-    setLoading(false);
     
     doc.save(`Bill_History_${selectedRoom.roomNumber}_${hist.month}.pdf`);
     showToast("📥 Historical Bill PDF downloaded!");
