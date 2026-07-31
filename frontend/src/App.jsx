@@ -1057,24 +1057,7 @@ export default function App() {
       {/* Fullscreen Loading Spinner Overlay */}
       {loading && (
         <div className="loading-overlay">
-          <div className="loading-container">
-            <div className="spinner-ring"></div>
-            <div>
-              <h3 className="loading-title">
-                {showColdStartWarning ? 'Waking up the server...' : 'Retrieving Data...'}
-              </h3>
-              <p className="loading-subtitle">
-                {showColdStartWarning 
-                  ? `The backend server runs on a free tier and sleeps during inactivity. Waking it up now... ${retryCount > 0 ? `(Attempt ${retryCount}/15)` : ''}` 
-                  : 'Please wait, fetching rental records...'}
-              </p>
-            </div>
-            {showColdStartWarning && (
-              <div className="loading-warning">
-                <b>💡 Tip:</b> The first load can take up to 60 seconds while Render spins up the Spring Boot service. Subsequent actions will be near-instant!
-              </div>
-            )}
-          </div>
+          <div className="spinner-ring"></div>
         </div>
       )}
 
