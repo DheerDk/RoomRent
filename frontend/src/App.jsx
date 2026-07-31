@@ -23,6 +23,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showColdStartWarning, setShowColdStartWarning] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -85,16 +86,41 @@ export default function App() {
       }, 3000);
     } else {
       setShowColdStartWarning(false);
+      setRetryCount(0);
     }
     return () => clearTimeout(timer);
   }, [loading]);
+
+  // Fetch helper with automated retry polling for backend cold starts
+  const fetchWithRetry = async (url, options = {}, retries = 15, delay = 5000) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const res = await fetch(url, options);
+        if (res.ok) {
+          setRetryCount(0);
+          return res;
+        }
+        if (res.status === 502 || res.status === 503 || res.status === 504) {
+          setRetryCount(i + 1);
+        } else {
+          setRetryCount(0);
+          return res;
+        }
+      } catch (err) {
+        setRetryCount(i + 1);
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    setRetryCount(0);
+    return fetch(url, options);
+  };
 
   // Fetch all rooms and stats
   const fetchData = async () => {
     setLoading(true);
     try {
-      const statsRes = await fetch(`${API_BASE}/stats`);
-      const roomsRes = await fetch(`${API_BASE}/rooms`);
+      const statsRes = await fetchWithRetry(`${API_BASE}/stats`);
+      const roomsRes = await fetchWithRetry(`${API_BASE}/rooms`);
       
       if (statsRes.ok && roomsRes.ok) {
         const statsData = await statsRes.json();
@@ -175,8 +201,8 @@ export default function App() {
   const fetchRoomDetails = async (roomId) => {
     setLoading(true);
     try {
-      const roomRes = await fetch(`${API_BASE}/rooms/${roomId}`);
-      const historyRes = await fetch(`${API_BASE}/rooms/${roomId}/history`);
+      const roomRes = await fetchWithRetry(`${API_BASE}/rooms/${roomId}`);
+      const historyRes = await fetchWithRetry(`${API_BASE}/rooms/${roomId}/history`);
       
       if (roomRes.ok && historyRes.ok) {
         const roomData = await roomRes.json();
@@ -1039,7 +1065,7 @@ export default function App() {
               </h3>
               <p className="loading-subtitle">
                 {showColdStartWarning 
-                  ? 'The backend server runs on a free tier and sleeps during inactivity. Waking it up now...' 
+                  ? `The backend server runs on a free tier and sleeps during inactivity. Waking it up now... ${retryCount > 0 ? `(Attempt ${retryCount}/15)` : ''}` 
                   : 'Please wait, fetching rental records...'}
               </p>
             </div>
