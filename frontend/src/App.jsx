@@ -24,6 +24,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [showColdStartWarning, setShowColdStartWarning] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [successOverlay, setSuccessOverlay] = useState({ show: false, message: '' });
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -75,6 +76,17 @@ export default function App() {
     setTimeout(() => {
       setToastMessage('');
     }, 3000);
+  };
+
+  // Show a beautiful full screen success notification overlay and then redirect/refresh
+  const triggerSuccessAndRedirect = (message, redirectFn) => {
+    setSuccessOverlay({ show: true, message });
+    setTimeout(() => {
+      setSuccessOverlay({ show: false, message: '' });
+      if (redirectFn) {
+        redirectFn();
+      }
+    }, 1500);
   };
 
   // Watch loading state and show cold-start warning of Render free tier if loading > 3 seconds
@@ -264,8 +276,9 @@ export default function App() {
         method: 'POST'
       });
       if (res.ok) {
-        showToast('✅ Monthly Rent Marked as Paid');
-        fetchRoomDetails(selectedRoomId);
+        triggerSuccessAndRedirect('Monthly Rent Marked as Paid!', () => {
+          fetchRoomDetails(selectedRoomId);
+        });
       } else {
         showToast('❌ Failed to update rent status');
       }
@@ -281,8 +294,9 @@ export default function App() {
         method: 'POST'
       });
       if (res.ok) {
-        showToast('✅ Electricity Bill Marked as Paid');
-        fetchRoomDetails(selectedRoomId);
+        triggerSuccessAndRedirect('Electricity Bill Marked as Paid!', () => {
+          fetchRoomDetails(selectedRoomId);
+        });
       } else {
         showToast('❌ Failed to update electricity status');
       }
@@ -317,8 +331,9 @@ export default function App() {
       });
       
       if (res.ok) {
-        showToast('⚡ Bill Calculated & Logged!');
-        fetchRoomDetails(selectedRoomId);
+        triggerSuccessAndRedirect('Electricity Bill Logged!', () => {
+          fetchRoomDetails(selectedRoomId);
+        });
       } else {
         const errorText = await res.text();
         showToast(`❌ Error: ${errorText}`);
@@ -367,7 +382,6 @@ export default function App() {
       });
 
       if (res.ok) {
-        showToast('✅ Tenant Added & Room Occupied!');
         // Reset form
         setTenantForm({
           houseName: 'Old House',
@@ -382,7 +396,9 @@ export default function App() {
           previousMeterReading: '0',
           membersCount: ''
         });
-        handleBackToDashboard();
+        triggerSuccessAndRedirect('Tenant Added & Allocated successfully!', () => {
+          handleBackToDashboard();
+        });
       } else {
         showToast('❌ Failed to add tenant');
       }
@@ -401,8 +417,9 @@ export default function App() {
         method: 'POST'
       });
       if (res.ok) {
-        showToast('🏠 Room vacated successfully');
-        handleBackToDashboard();
+        triggerSuccessAndRedirect('Room Vacated Successfully!', () => {
+          handleBackToDashboard();
+        });
       } else {
         showToast('❌ Failed to vacate room');
       }
@@ -468,9 +485,10 @@ export default function App() {
         })
       });
       if (res.ok) {
-        showToast('✅ Room updated successfully!');
         setIsEditModalOpen(false);
-        fetchRoomDetails(editForm.id); // Reload room data
+        triggerSuccessAndRedirect('Room Details Updated!', () => {
+          handleBackToDashboard();
+        });
       } else {
         const errorText = await res.text();
         showToast(`❌ Update failed: ${errorText || 'Server error'}`);
@@ -493,8 +511,9 @@ export default function App() {
         method: 'DELETE'
       });
       if (res.ok) {
-        showToast('🗑️ Room deleted successfully');
-        handleBackToDashboard(); // Return to main page
+        triggerSuccessAndRedirect('Room Deleted Completely!', () => {
+          handleBackToDashboard();
+        });
       } else {
         showToast('❌ Failed to delete room');
       }
@@ -1058,6 +1077,17 @@ export default function App() {
       {loading && (
         <div className="loading-overlay">
           <div className="spinner-ring"></div>
+        </div>
+      )}
+
+      {/* Fullscreen Success Trigger Overlay */}
+      {successOverlay.show && (
+        <div className="success-overlay">
+          <div className="success-card">
+            <div className="success-icon-circle">✓</div>
+            <div className="success-text">{successOverlay.message}</div>
+            <div className="success-subtext">Updating database and redirecting...</div>
+          </div>
         </div>
       )}
 
