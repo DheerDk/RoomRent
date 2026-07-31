@@ -22,6 +22,7 @@ export default function App() {
   // Loading & Toast State
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [showColdStartWarning, setShowColdStartWarning] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -74,6 +75,19 @@ export default function App() {
       setToastMessage('');
     }, 3000);
   };
+
+  // Watch loading state and show cold-start warning of Render free tier if loading > 3 seconds
+  useEffect(() => {
+    let timer;
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowColdStartWarning(true);
+      }, 3000);
+    } else {
+      setShowColdStartWarning(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // Fetch all rooms and stats
   const fetchData = async () => {
@@ -1014,6 +1028,30 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Fullscreen Loading Spinner Overlay */}
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loading-container">
+            <div className="spinner-ring"></div>
+            <div>
+              <h3 className="loading-title">
+                {showColdStartWarning ? 'Waking up the server...' : 'Retrieving Data...'}
+              </h3>
+              <p className="loading-subtitle">
+                {showColdStartWarning 
+                  ? 'The backend server runs on a free tier and sleeps during inactivity. Waking it up now...' 
+                  : 'Please wait, fetching rental records...'}
+              </p>
+            </div>
+            {showColdStartWarning && (
+              <div className="loading-warning">
+                <b>💡 Tip:</b> The first load can take up to 60 seconds while Render spins up the Spring Boot service. Subsequent actions will be near-instant!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Dynamic Header */}
       <header className="app-header">
         <div className="header-title-row">
